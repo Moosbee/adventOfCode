@@ -22,7 +22,7 @@ fn main() {
         });
 
         let mut impossible = false;
-        let mut min_set = Sets {
+        let mut min_set = Set {
             red: 0,
             green: 0,
             blue: 0,
@@ -65,10 +65,10 @@ fn main() {
 #[derive(Debug)]
 pub struct Game {
     id: i32,
-    sets: Vec<Sets>,
+    sets: Vec<Set>,
 }
 #[derive(Debug)]
-pub struct Sets {
+pub struct Set {
     red: i32,
     green: i32,
     blue: i32,
@@ -87,7 +87,7 @@ fn string_to_game(text: &str) -> Option<Game> {
         let sets = parts[1].trim();
         let sets_part = sets.split(';');
 
-        let mut sets: Vec<Sets> = vec![];
+        let mut sets: Vec<Set> = vec![];
 
         for part in sets_part {
             let color_parts: std::str::Split<'_, &str> = part.trim().split(", ");
@@ -102,8 +102,8 @@ fn string_to_game(text: &str) -> Option<Game> {
     }
 }
 
-fn strings_to_set(set_str: std::str::Split<'_, &str>) -> Sets {
-    let mut set = Sets {
+fn strings_to_set(set_str: std::str::Split<'_, &str>) -> Set {
+    let mut set = Set {
         blue: 0,
         green: 0,
         red: 0,
