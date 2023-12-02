@@ -8,7 +8,8 @@ fn main() {
 
     println!("Files Lines {}", input_lines.clone().count());
 
-    let mut sum = 0;
+    let mut part_1_sum = 0;
+    let mut part_2_sum = 0;
 
     for line in input_lines {
         let lin_game = string_to_game(line).unwrap_or(Game {
@@ -21,24 +22,44 @@ fn main() {
         });
 
         let mut impossible = false;
+        let mut min_set = Sets {
+            red: 0,
+            green: 0,
+            blue: 0,
+        };
 
         for set in lin_game.sets {
             if set.blue > 14 || set.green > 13 || set.red > 12 {
                 impossible = true;
             }
+
+            if set.blue > min_set.blue {
+                min_set.blue = set.blue
+            }
+            if set.green > min_set.green {
+                min_set.green = set.green
+            }
+            if set.red > min_set.red {
+                min_set.red = set.red
+            }
         }
 
         if !impossible {
-            sum = sum + lin_game.id;
+            part_1_sum = part_1_sum + lin_game.id;
         }
 
+        let power = min_set.blue * min_set.green * min_set.red;
+
+        part_2_sum = part_2_sum + power;
+
         println!(
-            "Line '{}'\n'{:?}'\nimpossible:{}\n",
-            line, lin_game_t, impossible
+            "Line '{}'\n'{:?}'\nimpossible:{} min_set:{:?} power:{}\n",
+            line, lin_game_t, impossible, min_set, power
         );
     }
 
-    println!("Sum of valid: {}", sum);
+    println!("Sum of valid: {}", part_1_sum);
+    println!("Sum of power: {}", part_2_sum);
 }
 
 #[derive(Debug)]
@@ -70,36 +91,32 @@ fn string_to_game(text: &str) -> Option<Game> {
 
         for part in sets_part {
             let color_parts: std::str::Split<'_, &str> = part.trim().split(", ");
-            let set=strings_to_set(color_parts);
+            let set = strings_to_set(color_parts);
 
             sets.push(set);
         }
 
-        Some(Game {
-            id,
-            sets,
-        })
-    }else {
+        Some(Game { id, sets })
+    } else {
         None
     }
-
 }
 
-fn strings_to_set(set_str:std::str::Split<'_, &str>) -> Sets {
-    let mut set=Sets{
-        blue:0,
-        green:0,
-        red:0
+fn strings_to_set(set_str: std::str::Split<'_, &str>) -> Sets {
+    let mut set = Sets {
+        blue: 0,
+        green: 0,
+        red: 0,
     };
     for part in set_str {
-        let parsed:Vec<&str>=part.trim().split(' ').collect();
-        if parsed.len()==2{
-            let number:i32=parsed[0].trim().parse().unwrap_or_default();  
+        let parsed: Vec<&str> = part.trim().split(' ').collect();
+        if parsed.len() == 2 {
+            let number: i32 = parsed[0].trim().parse().unwrap_or_default();
             match parsed[1].trim() {
-                "blue"=>set.blue=number,
-                "red"=>set.red=number,
-                "green"=>set.green=number,
-                _=>{}
+                "blue" => set.blue = number,
+                "red" => set.red = number,
+                "green" => set.green = number,
+                _ => {}
             }
         }
     }
