@@ -37,7 +37,7 @@ fn main() {
 
     println!("Nodes:{:?}", nodes);
 
-    let mut current_nodes: Vec<&Node> = nodes
+    let current_nodes: Vec<&Node> = nodes
         .iter()
         .filter_map(|node| {
             if node.id.ends_with('A') {
@@ -51,50 +51,73 @@ fn main() {
     println!("Current Nodes:{:?}", current_nodes);
 
     let mut turn_index: usize = 0;
-    let mut times: u128 = 0;
 
     let start = Instant::now();
 
-    loop {
-        current_nodes = current_nodes
-            .iter()
-            .map(|node| get_next_node(node, turn_index, &nodes, &turn_signals))
-            .collect();
+    let mut erg_vec: Vec<usize> = vec![];
 
-        turn_index = (turn_index + 1) % turn_signals.len();
+    for current_node in current_nodes {
+        let mut next_node = current_node;
 
-        times = times + 1;
+        let mut times: usize = 0;
 
-        if times % 10000000 == 0 {
-            let count = current_nodes
-                .iter()
-                .filter(|node| node.id.ends_with('Z'))
-                .count();
+        loop {
+            next_node = get_next_node(next_node, turn_index, &nodes, &turn_signals);
 
-            println!(
-                "Node count: {} r nodes: {} Current Nodes:{:?} iteration:{:?}",
-                current_nodes.len(),
-                count,
-                current_nodes,
-                times
-            );
+            turn_index = (turn_index + 1) % turn_signals.len();
+
+            times = times + 1;
+
+            if next_node.id.ends_with('Z') {
+                break;
+            }
         }
-
-        // if count == current_nodes.len() {
-        //     break;
-        // }
-
-        if current_nodes.iter().all(|node| node.id.ends_with('Z')) {
-            break;
-        }
+        erg_vec.push(times);
+        println!(
+            "Times: {} turn signals: {} ratio: {} mod: {} took: {:?}",
+            times,
+            turn_signals.len(),
+            times / turn_signals.len(),
+            times % turn_signals.len(),
+            start.elapsed()
+        );
     }
 
     println!(
-        "Times: {} End: {:?} took: {:?}",
-        times,
-        current_nodes,
+        "Solution: {} took: {:?}",
+        lcm_of_vector(erg_vec),
         start.elapsed()
     );
+}
+
+// Function to find the Greatest Common Divisor (GCD)
+fn gcd(mut a: usize, mut b: usize) -> usize {
+    while b != 0 {
+        let temp = b;
+        b = a % b;
+        a = temp;
+    }
+    a
+}
+
+// Function to find the Least Common Multiple (LCM) of two numbers
+fn lcm(a: usize, b: usize) -> usize {
+    a * b / gcd(a, b)
+}
+
+// Function to find the LCM of a vector of integers
+fn lcm_of_vector(numbers: Vec<usize>) -> usize {
+    if numbers.is_empty() {
+        panic!("Vector is empty");
+    }
+
+    let mut result = numbers[0];
+
+    for &num in &numbers[1..] {
+        result = lcm(result, num);
+    }
+
+    result
 }
 
 fn get_next_node<'a>(
