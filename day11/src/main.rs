@@ -10,37 +10,18 @@ struct Galaxy {
 
 fn main() {
     let start = Instant::now();
-    let input =
-        fs::read_to_string("./input.txt").expect("Should have been able to read the file");
+    let input = fs::read_to_string("./input.txt").expect("Should have been able to read the file");
 
     let input_lines = input.lines();
 
     println!("Files Lines {}", input_lines.clone().count());
 
-    let expanded_sky = expand_sky(input_lines.map(|line| line.chars().collect()).collect());
+    let galaxies: Vec<Galaxy> = get_galaxies(
+        input_lines.map(|line| line.chars().collect()).collect(),
+        1000000,
+    );
 
-    let galaxies: Vec<Galaxy> = expanded_sky
-        .iter()
-        .enumerate()
-        .map(|f| {
-            f.1.iter().enumerate().filter_map(move |g| {
-                if g.1 == &'#' {
-                    return Some(Galaxy { x: f.0, y: g.0 });
-                }
-                None
-            })
-        })
-        .flatten()
-        .collect();
-
-    for exp in expanded_sky {
-        for run in exp {
-            print!("{}", run);
-        }
-        println!();
-    }
-
-    println!("Galaxies: {:?}", galaxies);
+    println!("Galaxies: {:?}", galaxies.len());
 
     let mut galaxy_pairs: Vec<(&Galaxy, &Galaxy)> = vec![];
 
@@ -57,42 +38,73 @@ fn main() {
         }
     }
 
-    let mut sum = 0;
+    println!("Galaxy Pairs: {:?}", galaxy_pairs.len());
+
+    let mut sum: u128 = 0;
 
     for pair in galaxy_pairs {
-        let distance = ((pair.0.x as i32) - (pair.1.x as i32)).abs()
-            + ((pair.0.y as i32) - (pair.1.y as i32)).abs();
-        sum = sum + distance;
-        println!("Galaxy Pair: {:?} {}", pair, distance);
+        let distance = ((pair.0.x as i128) - (pair.1.x as i128)).abs()
+            + ((pair.0.y as i128) - (pair.1.y as i128)).abs();
+        sum = sum + (distance as u128);
+        // println!("Galaxy Pair: {:?} {}", pair, distance);
     }
 
-    println!("Part 1: {} Part 2: {} took {:?}", sum, 0, start.elapsed());
+    println!("Part 2: {} took {:?}", sum, start.elapsed());
 }
 
-fn expand_sky(sky: Vec<Vec<char>>) -> Vec<Vec<char>> {
-    let mut big_sky: Vec<Vec<char>> = vec![];
+fn get_galaxies(sky: Vec<Vec<char>>, size_factor: usize) -> Vec<Galaxy> {
+    let mut empty_lines: Vec<usize> = vec![];
 
-    for sky_line in sky {
-        if sky_line.iter().all(|f| f != &'#') {
-            big_sky.push(sky_line.clone());
+    for sky_line in sky.iter().enumerate() {
+        if sky_line.1.iter().all(|f| f != &'#') {
+            empty_lines.push(sky_line.0);
         }
-        big_sky.push(sky_line);
     }
 
-    for index in (0..big_sky[0].len()).rev() {
+    let mut empty_rows: Vec<usize> = vec![];
+
+    for index in 0..sky[0].len() {
         let mut has_galaxy = false;
-        for big_sky_line in &big_sky {
+        for big_sky_line in &sky {
             if big_sky_line[index] == '#' {
                 has_galaxy = true;
                 break;
             }
         }
         if !has_galaxy {
-            for big_sky_line in &mut big_sky {
-                big_sky_line.insert(index, '.');
+            empty_rows.push(index);
+        }
+    }
+
+    println!("empty lines:{:?} empty rows:{:?}", empty_lines, empty_rows);
+
+    let mut galaxies: Vec<Galaxy> = vec![];
+
+    for sky_line in sky.iter().enumerate() {
+        for sky_grid in sky_line.1.iter().enumerate() {
+            if sky_grid.1 == &'#' {
+                let mut line_count = 0;
+                for line in &empty_lines {
+                    if line > &sky_line.0 {
+                        break;
+                    }
+                    line_count = line_count + 1;
+                }
+                let mut row_count = 0;
+                for row in &empty_rows {
+                    if row > &sky_grid.0 {
+                        break;
+                    }
+                    row_count = row_count + 1;
+                }
+
+                galaxies.push(Galaxy {
+                    x: sky_line.0 + line_count * (size_factor - 1),
+                    y: sky_grid.0 + row_count * (size_factor - 1),
+                })
             }
         }
     }
 
-    big_sky
+    galaxies
 }
