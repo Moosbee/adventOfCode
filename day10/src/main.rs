@@ -51,6 +51,12 @@ fn main() {
         //     current_pipe, first_pipe, second_pipe, last_pipe
         // );
 
+        if scores[current_pipe.pos.0][current_pipe.pos.1] != 0 {
+            println!("Problem");
+        }
+
+        scores[current_pipe.pos.0][current_pipe.pos.1] = count;
+
         if first_pipe.is_some() && first_pipe.unwrap().pos != last_pipe.pos {
             println!(
                 "Pipe from {:?} to {:?} because {} {:?} != {:?}",
@@ -74,29 +80,94 @@ fn main() {
             last_pipe = current_pipe;
             current_pipe = second_pipe.unwrap();
         } else {
-            println!("Something happened");
+            println!(
+                "Pipe from {:?} to {:?} {:?} is wrong",
+                current_pipe, first_pipe, second_pipe,
+            );
         }
 
         // print_board(&pipes, &scores);
 
-        if scores[current_pipe.pos.0][current_pipe.pos.1] != 0 {
-            println!("Problem");
-        }
-
-        scores[current_pipe.pos.0][current_pipe.pos.1] = count;
-
         count = count + 1;
-        if current_pipe.pipe_type == 'S' {
+        if current_pipe.pipe_type == 'S' || count > 640000 {
             break;
         }
     }
 
     print_board(&pipes, &scores);
 
+    let mut in_count = 0;
+
+    for pipe_line in pipes.iter().enumerate() {
+        let mut inside = false;
+        let mut last_pipe = ' ';
+
+        for pipe in pipe_line.1.iter().enumerate() {
+            let score = scores[pipe_line.0][pipe.0];
+            let pipe_type = pipe.1;
+
+            if score == 0 {
+                if inside {
+                    scores[pipe_line.0][pipe.0] = -1;
+                    in_count = in_count + 1;
+                }
+            } else if score == -1 {
+            } else {
+                // ─│┌┐└┘
+                match pipe_type {
+                    '─' => {}
+                    '│' => {
+                        inside = !inside;
+                    }
+                    '┌' => {
+                        inside = !inside;
+                        last_pipe = '┌';
+                    }
+                    '┐' => {
+                        match last_pipe {
+                            '┌' => {
+                                inside = !inside;
+                            }
+                            '└' => {}
+                            _ => {
+                                // inside = !inside;
+                            }
+                        }
+                        last_pipe = '.';
+                    }
+                    '└' => {
+                        inside = !inside;
+                        last_pipe = '└';
+                    }
+                    '┘' => {
+                        match last_pipe {
+                            '┌' => {}
+                            '└' => {
+                                inside = !inside;
+                            }
+                            _ => {
+                                // inside = !inside;
+                            }
+                        }
+                        last_pipe = '.';
+                    }
+                    'S' => {
+                        inside = !inside;
+                        last_pipe = 'S';
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    print_board(&pipes, &scores);
+
     println!(
-        "Solution: {} ({}) took {:?}",
+        "Solution: {} ({}) second: {} took {:?}",
         count / 2,
         count,
+        in_count,
         start.elapsed()
     );
 }
@@ -242,11 +313,14 @@ fn get_next_pipe(
 
 fn print_board(pipes: &Vec<Vec<char>>, scores: &Vec<Vec<i32>>) {
     for pipe_line in pipes.iter().enumerate() {
+        print!("          ");
         for pipe in pipe_line.1.iter().enumerate() {
             // print!("{number:>width$}", number = pipe, width = 3);
             let score = scores[pipe_line.0][pipe.0];
             if score == 0 {
                 print!("{}", pipe.1);
+            } else if score == -1 {
+                print!("{}", pipe.1.to_string().green());
             } else {
                 print!("{}", pipe.1.to_string().yellow());
             }
