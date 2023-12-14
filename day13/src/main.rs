@@ -35,11 +35,11 @@ fn part2(mirror: &str) -> usize {
     let column_smg = get_column_smudge(&lines);
     let line_mir = part1(mirror);
 
-    if column_smg.is_some() {
-        return column_smg.unwrap().1 * 100;
-    }
     if line_smg.is_some() {
-        return line_smg.unwrap().1;
+        return (line_smg.unwrap().1-1)*100;
+    }
+    if column_smg.is_some() {
+        return (column_smg.unwrap().1-1);
     }
 
     line_mir
@@ -94,11 +94,11 @@ fn get_line_smudge(lines: &Vec<&str>) -> Option<(usize, usize)> {
         for (line_nr, line_str) in lines.iter().enumerate() {
             let line: Vec<char> = line_str.chars().collect();
 
-            // if !mirror_on_line_char(**mr_in, &line) {
-            //     do_not_have_it.push(line_nr);
-            // }
+            if !mirror_on_line_char(**mr_in, &line) {
+                do_not_have_it.push(line_nr);
+            }
 
-            do_not_have_it.append(&mut errors_on_line_char(**mr_in, &line).unwrap());
+            // do_not_have_it.append(&mut errors_on_line_char(**mr_in, &line).unwrap());
 
         }
 
@@ -141,12 +141,12 @@ fn get_column_smudge(lines: &Vec<&str>) -> Option<(usize, usize)> {
         for column in 0..lines[0].len() {
             let line: Vec<char> = lines.iter().filter_map(|f| f.chars().nth(column)).collect();
 
-            // if !mirror_on_line_char(**mr_in, &line) {
-            //     do_not_have_it.push(column);
-            // }
+            if !mirror_on_line_char(**mr_in, &line) {
+                do_not_have_it.push(column);
+            }
 
-            println!("Line {:?}",errors_on_line_char(**mr_in, &line));
-            do_not_have_it.append(&mut errors_on_line_char(**mr_in, &line).unwrap());
+            // println!("Line {:?}",errors_on_line_char(**mr_in, &line));
+            // do_not_have_it.append(&mut errors_on_line_char(**mr_in, &line).unwrap());
         }
 
         do_not_have_it.sort();
