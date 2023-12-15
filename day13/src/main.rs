@@ -39,37 +39,37 @@ fn part2(mirror: &str) -> usize {
         return (line_smg.unwrap().1-1)*100;
     }
     if column_smg.is_some() {
-        return (column_smg.unwrap().1-1);
+        return column_smg.unwrap().1-1;
     }
 
     line_mir
 }
 
-fn fix_smudge(mirror: &str, smudge: (usize, usize)) -> String {
-    let lines: Vec<&str> = mirror.lines().collect();
+// fn fix_smudge(mirror: &str, smudge: (usize, usize)) -> String {
+//     let lines: Vec<&str> = mirror.lines().collect();
 
-    let mut new_str: String = String::new();
+//     let mut new_str: String = String::new();
 
-    for line in lines.iter().enumerate() {
-        if line.0 != smudge.1 {
-            new_str = new_str + "\n" + line.1;
-        } else {
-            let mut chars: Vec<char> = line.1.chars().collect();
+//     for line in lines.iter().enumerate() {
+//         if line.0 != smudge.1 {
+//             new_str = new_str + "\n" + line.1;
+//         } else {
+//             let mut chars: Vec<char> = line.1.chars().collect();
 
-            if chars[smudge.0] == '#' {
-                chars[smudge.0] = '.';
-            } else {
-                if chars[smudge.0] == '.' {
-                    chars[smudge.0] = '#';
-                }
-            }
-            let new_line: String = chars.into_iter().collect();
-            new_str = new_str + "\n" + &new_line;
-        }
-    }
+//             if chars[smudge.0] == '#' {
+//                 chars[smudge.0] = '.';
+//             } else {
+//                 if chars[smudge.0] == '.' {
+//                     chars[smudge.0] = '#';
+//                 }
+//             }
+//             let new_line: String = chars.into_iter().collect();
+//             new_str = new_str + "\n" + &new_line;
+//         }
+//     }
 
-    new_str
-}
+//     new_str
+// }
 
 fn get_line_smudge(lines: &Vec<&str>) -> Option<(usize, usize)> {
     let mut mirroring: Vec<Vec<usize>> = vec![];
@@ -164,29 +164,29 @@ fn get_column_smudge(lines: &Vec<&str>) -> Option<(usize, usize)> {
     solution
 }
 
-fn errors_on_line_char(line_index: usize, line: &Vec<char>) -> Option<Vec<usize>> {
-    if line_index >= line.len() || line_index == 0 {
-        return None;
-    }
-    let left_side_rev: Vec<char> = (&line[0..line_index])
-        .iter()
-        .rev()
-        .map(|f| f.clone())
-        .collect();
-    let right_side: Vec<char> = (&line[line_index..]).iter().map(|f| f.clone()).collect();
+// fn errors_on_line_char(line_index: usize, line: &Vec<char>) -> Option<Vec<usize>> {
+//     if line_index >= line.len() || line_index == 0 {
+//         return None;
+//     }
+//     let left_side_rev: Vec<char> = (&line[0..line_index])
+//         .iter()
+//         .rev()
+//         .map(|f| f.clone())
+//         .collect();
+//     let right_side: Vec<char> = (&line[line_index..]).iter().map(|f| f.clone()).collect();
 
-    // println!("         Lin\n          {:?}\n          {:?}",left_side_rev,right_side);
+//     // println!("         Lin\n          {:?}\n          {:?}",left_side_rev,right_side);
 
-    let mut wrongs: Vec<usize> = vec![];
+//     let mut wrongs: Vec<usize> = vec![];
 
-    for index in 0..(left_side_rev.len().min(right_side.len())) {
-        if left_side_rev[index.clone()] != right_side[index] {
-            wrongs.push(index);
-        }
-    }
+//     for index in 0..(left_side_rev.len().min(right_side.len())) {
+//         if left_side_rev[index.clone()] != right_side[index] {
+//             wrongs.push(index);
+//         }
+//     }
 
-    Some(wrongs)
-}
+//     Some(wrongs)
+// }
 
 fn part1(mirror: &str) -> usize {
     let lines: Vec<&str> = mirror.lines().collect();
