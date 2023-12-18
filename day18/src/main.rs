@@ -1,20 +1,23 @@
-use hex_color::HexColor;
 use std::fs;
 
 use std::time::Instant;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct Instruction {
+    direction: char,
+    distance: i64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 struct Hole {
-    x: i32,
-    y: i32,
-    color: HexColor,
+    x: i64,
+    y: i64,
     pipe: char,
 }
 
 fn main() {
     let start = Instant::now();
     let input =
-        fs::read_to_string("./input.txt").expect("Should have been able to read the file");
+        fs::read_to_string("./test_input.txt").expect("Should have been able to read the file");
 
     let input_lines = input.lines();
 
@@ -30,90 +33,63 @@ fn main() {
     let mut last_hole: Hole = Hole {
         x: 0,
         y: 0,
-        color: HexColor {
-            r: 0,
-            g: 0,
-            b: 0,
-            a: 0,
-        },
         pipe: 'D',
     };
 
     let mut last_type = 'D';
 
     for line in input_lines {
-        let line_parts: Vec<&str> = line.split(" ").collect();
-        if line_parts.len() == 3 {
-            let dir = line_parts[0].chars().nth(0).unwrap();
-            let walk_distance: usize = line_parts[1].parse().unwrap();
-            let trench_color: HexColor =
-                HexColor::parse_rgb(&line_parts[2].replace("(", "").replace(")", "")).unwrap();
-            println!(
-                "Line dir {} walks {} color {:?}",
-                dir, walk_distance, trench_color
-            );
-            for _index in 0..walk_distance {
-                let hole: Hole = match dir {
-                    'U' => Hole {
-                        x: last_hole.x,
-                        y: last_hole.y - 1,
-                        color: trench_color,
-                        pipe: '.',
-                    },
-                    'D' => Hole {
-                        x: last_hole.x,
-                        y: last_hole.y + 1,
-                        color: trench_color,
-                        pipe: '.',
-                    },
-                    'L' => Hole {
-                        x: last_hole.x - 1,
-                        y: last_hole.y,
-                        color: trench_color,
-                        pipe: '.',
-                    },
-                    'R' => Hole {
-                        x: last_hole.x + 1,
-                        y: last_hole.y,
-                        color: trench_color,
-                        pipe: '.',
-                    },
-                    _ => Hole {
-                        x: last_hole.x,
-                        y: last_hole.y,
-                        color: trench_color,
-                        pipe: '.',
-                    },
-                };
-                lagoon
-                    .last_mut()
-                    .unwrap_or(&mut Hole {
-                        x: 0,
-                        y: 0,
-                        color: HexColor {
-                            r: 0,
-                            g: 0,
-                            b: 0,
-                            a: 0,
-                        },
-                        pipe: ' ',
-                    })
-                    .pipe = get_next_pipe(last_type, dir);
-                last_hole = hole;
-                last_type = dir;
-                lagoon.push(hole);
-                if hole.x > max_x {
-                    max_x = hole.x
-                }
-                if hole.x < min_x {
-                    min_x = hole.x
-                }
-                if hole.y > max_y {
-                    max_y = hole.y
-                }
-                if hole.y < min_y {
-                    min_y = hole.y
-                }
+        let inst = gen_instruction(line).unwrap();
+        for _index in 0..inst.distance {
+            let hole: Hole = match inst.direction {
+                'U' => Hole {
+                    x: last_hole.x,
+                    y: last_hole.y - 1,
+                    pipe: '.',
+                },
+                'D' => Hole {
+                    x: last_hole.x,
+                    y: last_hole.y + 1,
+                    pipe: '.',
+                },
+                'L' => Hole {
+                    x: last_hole.x - 1,
+                    y: last_hole.y,
+                    pipe: '.',
+                },
+                'R' => Hole {
+                    x: last_hole.x + 1,
+                    y: last_hole.y,
+                    pipe: '.',
+                },
+                _ => Hole {
+                    x: last_hole.x,
+                    y: last_hole.y,
+                    pipe: '.',
+                },
+            };
+            lagoon
+                .last_mut()
+                .unwrap_or(&mut Hole {
+                    x: 0,
+                    y: 0,
+                    pipe: ' ',
+                })
+                .pipe = get_next_pipe(last_type, inst.direction);
+            last_hole = hole;
+            last_type = inst.direction;
+            lagoon.push(hole);
+            if hole.x > max_x {
+                max_x = hole.x
+            }
+            if hole.x < min_x {
+                min_x = hole.x
+            }
+            if hole.y > max_y {
+                max_y = hole.y
+            }
+            if hole.y < min_y {
+                min_y = hole.y
             }
         }
     }
@@ -123,12 +99,6 @@ fn main() {
         .unwrap_or(&mut Hole {
             x: 0,
             y: 0,
-            color: HexColor {
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 0,
-            },
             pipe: ' ',
         })
         .pipe = get_next_pipe(last_type, 'R');
@@ -186,10 +156,10 @@ fn get_next_pipe(before: char, now: char) -> char {
 
 fn get_lagoon_vec(
     lagoon: Vec<Hole>,
-    min_x: i32,
-    min_y: i32,
-    max_x: i32,
-    max_y: i32,
+    min_x: i64,
+    min_y: i64,
+    max_x: i64,
+    max_y: i64,
 ) -> Vec<Vec<char>> {
     let mut bit_lagoon: Vec<Vec<char>> = ((min_y)..(max_y + 1))
         .map(|_f| ((min_x)..(max_x + 1)).map(|_f| '.').collect())
@@ -204,7 +174,7 @@ fn get_lagoon_vec(
     bit_lagoon
 }
 
-fn calc_inside(lagoon: &Vec<Vec<char>>) -> (i32, Vec<Vec<char>>) {
+fn calc_inside(lagoon: &Vec<Vec<char>>) -> (i64, Vec<Vec<char>>) {
     let mut in_count = 0;
 
     let mut algos = lagoon.clone();
@@ -282,7 +252,7 @@ fn print_lagoon_bits(lagoon: &Vec<Vec<char>>) {
 
 fn shoelace_formula(points: &[Hole]) -> f64 {
     let n = points.len();
-    let mut area = 0.0;
+    let mut area: f64 = 0.0;
 
     for i in 0..n {
         let j = (i + 1) % n;
@@ -291,4 +261,51 @@ fn shoelace_formula(points: &[Hole]) -> f64 {
 
     area = 0.5 * area.abs();
     area
+}
+
+fn gen_instruction(text: &str) -> Option<Instruction> {
+    let line_parts: Vec<&str> = text.split(" ").collect();
+    if line_parts.len() == 3 {
+        // println!(
+        //     "Line dir {} walks {} color {:?}",
+        //     dir, walk_distance, trench_color
+        // );
+        if false {
+            let dir = line_parts[0].chars().nth(0).unwrap();
+            let walk_distance = line_parts[1].parse().unwrap();
+            Some(Instruction {
+                direction: dir,
+                distance: walk_distance,
+            })
+        } else {
+            let trench_color = line_parts[2]
+                .replace("(", "")
+                .replace(")", "")
+                .replace("#", "");
+
+            let str_size = trench_color.len();
+            let last_char = &trench_color[(str_size - 1)..];
+            let distance = i64::from_str_radix(&trench_color[..(str_size - 1)], 16);
+
+            println!("Dist: {:?} dir {}", distance, last_char);
+
+            Some(Instruction {
+                direction: match last_char {
+                  "0" => 'R',
+                  "1" => 'D',
+                  "2" => 'L',
+                  "3" => 'U',
+                  _ => {
+                      // Handle other cases if needed
+                      // This block will be executed if the number doesn't match any of the specified cases
+                      // You can return an error or handle it based on your requirements
+                      panic!("Invalid number");
+                  }
+              },
+                distance: distance.unwrap(),
+            })
+        }
+    } else {
+        None
+    }
 }
