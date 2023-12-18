@@ -4,20 +4,19 @@ use std::time::Instant;
 
 struct Instruction {
     direction: char,
-    distance: i64,
+    distance: f64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 struct Hole {
-    x: i64,
-    y: i64,
-    pipe: char,
+    x: f64,
+    y: f64,
 }
 
 fn main() {
     let start = Instant::now();
     let input =
-        fs::read_to_string("./test_input.txt").expect("Should have been able to read the file");
+        fs::read_to_string("./input.txt").expect("Should have been able to read the file");
 
     let input_lines = input.lines();
 
@@ -25,230 +24,137 @@ fn main() {
 
     let mut lagoon: Vec<Hole> = vec![];
 
-    let mut min_x = 0;
-    let mut min_y = 0;
-    let mut max_x = 0;
-    let mut max_y = 0;
+    let mut min_x = 0.0;
+    let mut min_y = 0.0;
+    let mut max_x = 0.0;
+    let mut max_y = 0.0;
 
-    let mut last_hole: Hole = Hole {
-        x: 0,
-        y: 0,
-        pipe: 'D',
-    };
+    let mut last_hole: Hole = Hole { x: 0.5, y: 0.5 };
 
-    let mut last_type = 'D';
+    let mut last_dir = 'R';
+    let mut extra_mass = 0.0;
 
     for line in input_lines {
         let inst = gen_instruction(line).unwrap();
-        for _index in 0..inst.distance {
-            let hole: Hole = match inst.direction {
-                'U' => Hole {
-                    x: last_hole.x,
-                    y: last_hole.y - 1,
-                    pipe: '.',
-                },
-                'D' => Hole {
-                    x: last_hole.x,
-                    y: last_hole.y + 1,
-                    pipe: '.',
-                },
-                'L' => Hole {
-                    x: last_hole.x - 1,
-                    y: last_hole.y,
-                    pipe: '.',
-                },
-                'R' => Hole {
-                    x: last_hole.x + 1,
-                    y: last_hole.y,
-                    pipe: '.',
-                },
-                _ => Hole {
-                    x: last_hole.x,
-                    y: last_hole.y,
-                    pipe: '.',
-                },
-            };
-            lagoon
-                .last_mut()
-                .unwrap_or(&mut Hole {
-                    x: 0,
-                    y: 0,
-                    pipe: ' ',
-                })
-                .pipe = get_next_pipe(last_type, inst.direction);
-            last_hole = hole;
-            last_type = inst.direction;
-            lagoon.push(hole);
-            if hole.x > max_x {
-                max_x = hole.x
-            }
-            if hole.x < min_x {
-                min_x = hole.x
-            }
-            if hole.y > max_y {
-                max_y = hole.y
-            }
-            if hole.y < min_y {
-                min_y = hole.y
-            }
+
+        let hole: Hole = match inst.direction {
+            'U' => Hole {
+                x: last_hole.x,
+                y: last_hole.y - inst.distance,
+            },
+            'D' => Hole {
+                x: last_hole.x,
+                y: last_hole.y + inst.distance,
+            },
+            'L' => Hole {
+                x: last_hole.x - inst.distance,
+                y: last_hole.y,
+            },
+            'R' => Hole {
+                x: last_hole.x + inst.distance,
+                y: last_hole.y,
+            },
+            _ => Hole {
+                x: last_hole.x,
+                y: last_hole.y,
+            },
+        };
+
+        extra_mass = extra_mass + calc_extra_mass(last_dir, inst.direction, inst.distance);
+
+        last_hole = hole;
+        last_dir = inst.direction;
+        lagoon.push(hole);
+        if hole.x > max_x {
+            max_x = hole.x
+        }
+        if hole.x < min_x {
+            min_x = hole.x
+        }
+        if hole.y > max_y {
+            max_y = hole.y
+        }
+        if hole.y < min_y {
+            min_y = hole.y
         }
     }
 
-    lagoon
-        .last_mut()
-        .unwrap_or(&mut Hole {
-            x: 0,
-            y: 0,
-            pipe: ' ',
-        })
-        .pipe = get_next_pipe(last_type, 'R');
-
-    lagoon.sort();
+    list_points(&lagoon, "R");
 
     println!(
-        "min x {} max x {} min y {} max y {} Holes: {:?} Area: {}",
+        "min x {} max x {} min y {} max y {} Holes: {:?} Area: {} winding: {} extra mass: {}",
         min_x,
         max_x,
         min_y,
         max_y,
         lagoon.len(),
-        shoelace_formula(&lagoon)
+        shoelace_formula(&lagoon),
+        calculate_winding_order(&lagoon),
+        extra_mass
     );
 
-    let lagoon_bits = get_lagoon_vec(lagoon, min_x, min_y, max_x, max_y);
-
-    print_lagoon_bits(&lagoon_bits);
-
-    println!();
-
-    let count = calc_inside(&lagoon_bits);
-    // let count = get_inside_lagoon_gpt(&lagoon_bits);
-
-    print_lagoon_bits(&count.1);
-
-    println!("Solution: {} Took {:?}", count.0, start.elapsed())
+    println!(
+        "Solution: {} Took {:?}",
+        shoelace_formula(&lagoon) + extra_mass+1.0,
+        start.elapsed()
+    )
 }
 
-fn get_next_pipe(before: char, now: char) -> char {
+// Expected 62
+// Got      62
+
+// Expected 47675
+// Got      47675
+
+// Expected 952408144115
+// Got      952408144115
+
+// Expected 122103860427465
+// Got      122103860427465
+
+fn calc_extra_mass(before: char, now: char, distance: f64) -> f64 {
     match (before, now) {
-        ('U', 'D') => '│',
-        ('D', 'U') => '│',
-        ('U', 'U') => '│',
-        ('D', 'D') => '│',
-        ('L', 'R') => '─',
-        ('R', 'L') => '─',
-        ('R', 'R') => '─',
-        ('L', 'L') => '─',
-        ('U', 'L') => '┐',
-        ('L', 'U') => '└',
-        ('D', 'R') => '└',
-        ('R', 'D') => '┐',
-        ('U', 'R') => '┌',
-        ('R', 'U') => '┘',
-        ('D', 'L') => '┘',
-        ('L', 'D') => '┌',
+        ('U', 'D') => 0.5 * distance,
+        ('D', 'U') => 0.5 * distance,
+        ('U', 'U') => 0.5 * distance,
+        ('D', 'D') => 0.5 * distance,
+        ('L', 'R') => 0.5 * distance,
+        ('R', 'L') => 0.5 * distance,
+        ('R', 'R') => 0.5 * distance,
+        ('L', 'L') => 0.5 * distance,
+
+        // D (1.0, 0.0) Down  ↓
+        // L (0.0, 1.0) Left  ←
+        // R (0.0, 0.0) Right →
+        // U (0.0, 0.0) UP    ↑
+        ('U', 'L') => 0.5 * distance + 0.0,
+        ('R', 'U') => 0.5 * distance + 0.0,
+        ('R', 'D') => 0.5 * distance + 0.0,
+        ('D', 'L') => 0.5 * distance + 0.0,
+        ('L', 'U') => 0.5 * distance + 0.0,
+        ('D', 'R') => 0.5 * distance + 0.0,
+        ('U', 'R') => 0.5 * distance + 0.0,
+        ('L', 'D') => 0.5 * distance + 0.0,
         _ => {
             println!("Error: {} {}", before, now);
-            '.'
+            0.0
         } // Default case
     }
 }
 
-fn get_lagoon_vec(
-    lagoon: Vec<Hole>,
-    min_x: i64,
-    min_y: i64,
-    max_x: i64,
-    max_y: i64,
-) -> Vec<Vec<char>> {
-    let mut bit_lagoon: Vec<Vec<char>> = ((min_y)..(max_y + 1))
-        .map(|_f| ((min_x)..(max_x + 1)).map(|_f| '.').collect())
-        .collect();
-
-    for hole in lagoon {
-        let x_i: usize = (hole.x - min_x).try_into().unwrap();
-        let y_i: usize = (hole.y - min_y).try_into().unwrap();
-        bit_lagoon[y_i][x_i] = hole.pipe;
+fn list_points(points: &[Hole], p_name: &str) {
+    let mut poly_command = "\\operatorname{polygon}\\left(".to_string();
+    for (index, point) in points.iter().enumerate() {
+        println!(
+            "{}_{{{}}}=\\left({},{}\\right)",
+            p_name, index, point.x, -point.y
+        );
+        poly_command = poly_command + p_name + "_{" + &index.to_string() + "},\\ ";
     }
-
-    bit_lagoon
+    poly_command = poly_command.trim_end_matches(",\\ ").to_owned() + "\\right)";
+    println!("{}", poly_command);
 }
 
-fn calc_inside(lagoon: &Vec<Vec<char>>) -> (i64, Vec<Vec<char>>) {
-    let mut in_count = 0;
-
-    let mut algos = lagoon.clone();
-
-    for pipe_line in lagoon.iter().enumerate() {
-        let mut inside = false;
-        let mut last_pipe = ' ';
-
-        for pipe in pipe_line.1.iter().enumerate() {
-            let pipe_type = pipe.1;
-
-            if inside || pipe_type != &'.' {
-                in_count += 1;
-            }
-
-            // ─│┌┐└┘
-            match pipe_type {
-                '─' => {}
-                '│' => {
-                    inside = !inside;
-                }
-                '┌' => {
-                    inside = !inside;
-                    last_pipe = '┌';
-                }
-                '┐' => {
-                    match last_pipe {
-                        '┌' => {
-                            inside = !inside;
-                        }
-                        '└' => {}
-                        _ => {
-                            // inside = !inside;
-                        }
-                    }
-                    last_pipe = '.';
-                }
-                '└' => {
-                    inside = !inside;
-                    last_pipe = '└';
-                }
-                '┘' => {
-                    match last_pipe {
-                        '┌' => {}
-                        '└' => {
-                            inside = !inside;
-                        }
-                        _ => {
-                            // inside = !inside;
-                        }
-                    }
-                    last_pipe = '.';
-                }
-                '.' => {
-                    if inside {
-                        algos[pipe_line.0][pipe.0] = '#'
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-
-    (in_count, algos)
-}
-
-fn print_lagoon_bits(lagoon: &Vec<Vec<char>>) {
-    for bit_line in lagoon {
-        for bit in bit_line {
-            print!("{}", bit)
-        }
-        println!()
-    }
-}
 
 fn shoelace_formula(points: &[Hole]) -> f64 {
     let n = points.len();
@@ -291,21 +197,35 @@ fn gen_instruction(text: &str) -> Option<Instruction> {
 
             Some(Instruction {
                 direction: match last_char {
-                  "0" => 'R',
-                  "1" => 'D',
-                  "2" => 'L',
-                  "3" => 'U',
-                  _ => {
-                      // Handle other cases if needed
-                      // This block will be executed if the number doesn't match any of the specified cases
-                      // You can return an error or handle it based on your requirements
-                      panic!("Invalid number");
-                  }
-              },
-                distance: distance.unwrap(),
+                    "0" => 'R',
+                    "1" => 'D',
+                    "2" => 'L',
+                    "3" => 'U',
+                    _ => {
+                        // Handle other cases if needed
+                        // This block will be executed if the number doesn't match any of the specified cases
+                        // You can return an error or handle it based on your requirements
+                        panic!("Invalid number");
+                    }
+                },
+                distance: distance.unwrap() as f64,
             })
         }
     } else {
         None
     }
+}
+
+// If the signed area is positive, the winding order is counterclockwise.
+// If the signed area is negative, the winding order is clockwise.
+fn calculate_winding_order(vertices: &Vec<Hole>) -> f64 {
+    let n = vertices.len();
+    let mut signed_area: f64 = 0.0;
+
+    for i in 0..n {
+        let point_1 = vertices[i];
+        let point_2 = vertices[(i + 1) % n]; // Loop back to the first vertex for the last edge
+        signed_area += (point_2.x - point_1.x) * (point_2.y + point_1.y);
+    }
+    signed_area
 }
