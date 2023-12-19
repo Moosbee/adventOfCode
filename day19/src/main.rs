@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 
 use std::time::Instant;
@@ -41,13 +42,13 @@ enum PartType {
 
 fn main() {
     let start_time = Instant::now();
-    let input = fs::read_to_string("./input.txt")
+    let input = fs::read_to_string("./test_input.txt")
         .expect("Should have been able to read the file")
         .replace("\r", "");
 
     let input_lines = input.split_once("\n\n").unwrap();
 
-    let mut rules: Vec<WorkFlow> = input_lines
+    let rules_vec: Vec<WorkFlow> = input_lines
         .0
         .lines()
         .filter_map(|line| {
@@ -123,15 +124,19 @@ fn main() {
         })
         .collect();
 
-    rules.sort_by_key(|f| f.id.clone());
+    let mut hash_rules: HashMap<String, Vec<Rule>> = HashMap::new();
 
-    let start = &rules[rules.binary_search_by_key(&"in", |f| &f.id).unwrap()];
+    let rule_len = rules_vec.len();
+
+    for workflow in rules_vec {
+        hash_rules.insert(workflow.id, workflow.rules);
+    }
 
     println!(
         "Files Lines {} {} Start: {:?}",
-        rules.len(),
+        rule_len,
         parts.len(),
-        start
+        hash_rules.get("in")
     );
 
     // for rule in rules {
@@ -143,7 +148,7 @@ fn main() {
 
     let filtered: Vec<&Part> = parts
         .iter()
-        .filter(|f| resolve_part(&f, &rules, start))
+        .filter(|f| resolve_part(&f, &hash_rules, "in".to_string()))
         .collect();
 
     let mut total = 0;
@@ -155,30 +160,50 @@ fn main() {
     }
 
     println!("Solution: {} Took {:?}", total, start_time.elapsed());
+
+    let mut total: u64 = 0;
+
+    for x_i in (1..4001).step_by(1) {
+        for m_i in (1..4001).step_by(1) {
+            for a_i in (1..4001).step_by(1) {
+                for s_i in (1..4001).step_by(1) {
+                    if resolve_part(
+                        &Part {
+                            x: x_i,
+                            m: m_i,
+                            a: a_i,
+                            s: s_i,
+                        },
+                        &hash_rules,
+                        "in".to_string(),
+                    ) {
+                        total = total + 1;
+                    }
+                }
+            }
+            println!("Total: {}", total)
+        }
+    }
+
+    println!("Solution: {} Took {:?}", total, start_time.elapsed());
 }
 
-fn resolve_part(part: &Part, workflows: &Vec<WorkFlow>, start: &WorkFlow) -> bool {
+fn resolve_part(part: &Part, workflows: &HashMap<String, Vec<Rule>>, start: String) -> bool {
     let mut next_rule = start;
     let accepted = loop {
-        let next_rule_id = resolve_workflow(&part, next_rule);
-        if next_rule_id == "R" {
+        next_rule = resolve_workflow(&part, workflows.get(&next_rule).unwrap());
+        if next_rule == "R" {
             break false;
-        } else if next_rule_id == "A" {
+        } else if next_rule == "A" {
             break true;
         }
-        let next_index = workflows.binary_search_by_key(&&next_rule_id, |f| &f.id);
-        if next_index.is_err() {
-            println!("Error: {}", next_rule_id);
-            break false;
-        }
-        next_rule = &workflows[next_index.unwrap()]
     };
 
     accepted
 }
 
-fn resolve_workflow(part: &Part, rules: &WorkFlow) -> String {
-    for rule in &rules.rules {
+fn resolve_workflow(part: &Part, rules: &Vec<Rule>) -> String {
+    for rule in rules {
         let comp_value = match rule.categories {
             PartType::A => part.a,
             PartType::M => part.m,
