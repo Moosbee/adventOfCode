@@ -104,6 +104,7 @@ fn main() {
     // Got      167409079868000
     // Total    256000000000000
 
+    // Expected 143760172569135
     // Got      143760172569135
 
     println!("Solution: {} Took {:?}", part_2, start_time.elapsed());
@@ -133,44 +134,8 @@ fn get_workflow_count(
             continue;
         }
 
-        let mut range_ja = rest_range.to_owned();
-        let mut range_na = rest_range.to_owned();
-        let split_value = rule.value;
+        let (range_ja, range_na) = split_range_at_rule(&rest_range, rule);
 
-        match (rule.com, rule.categories) {
-            (Compare::Bigger, PartType::X) => {
-                range_ja.x.0 = range_ja.x.0.max(split_value + 1);
-                range_na.x.1 = range_na.x.1.min(split_value);
-            }
-            (Compare::Bigger, PartType::S) => {
-                range_ja.s.0 = range_ja.s.0.max(split_value + 1);
-                range_na.s.1 = range_na.s.1.min(split_value);
-            }
-            (Compare::Bigger, PartType::M) => {
-                range_ja.m.0 = range_ja.m.0.max(split_value + 1);
-                range_na.m.1 = range_na.m.1.min(split_value);
-            }
-            (Compare::Bigger, PartType::A) => {
-                range_ja.a.0 = range_ja.a.0.max(split_value + 1);
-                range_na.a.1 = range_na.a.1.min(split_value);
-            }
-            (Compare::Smaller, PartType::X) => {
-                range_ja.x.1 = range_ja.x.1.min(split_value - 1);
-                range_na.x.0 = range_na.x.0.max(split_value);
-            }
-            (Compare::Smaller, PartType::S) => {
-                range_ja.s.1 = range_ja.s.1.min(split_value - 1);
-                range_na.s.0 = range_na.s.0.max(split_value);
-            }
-            (Compare::Smaller, PartType::M) => {
-                range_ja.m.1 = range_ja.m.1.min(split_value - 1);
-                range_na.m.0 = range_na.m.0.max(split_value);
-            }
-            (Compare::Smaller, PartType::A) => {
-                range_ja.a.1 = range_ja.a.1.min(split_value - 1);
-                range_na.a.0 = range_na.a.0.max(split_value);
-            }
-        };
         // println!(
         //     "Range: {:?} ja: {:?} na: {:?} comp:{:?} part: {:?} split: {} workflow: {}",
         //     rest_range, range_ja, range_na, rule.com, rule.categories,split_value, rule.next_id
@@ -181,6 +146,49 @@ fn get_workflow_count(
     }
 
     total
+}
+
+fn split_range_at_rule(range: &PartRange, rule: &Rule) -> (PartRange, PartRange) {
+    let mut range_ja = range.clone();
+    let mut range_na = range.clone();
+    let split_value = rule.value;
+
+    match (rule.com, rule.categories) {
+        (Compare::Bigger, PartType::X) => {
+            range_ja.x.0 = range_ja.x.0.max(split_value + 1);
+            range_na.x.1 = range_na.x.1.min(split_value);
+        }
+        (Compare::Bigger, PartType::S) => {
+            range_ja.s.0 = range_ja.s.0.max(split_value + 1);
+            range_na.s.1 = range_na.s.1.min(split_value);
+        }
+        (Compare::Bigger, PartType::M) => {
+            range_ja.m.0 = range_ja.m.0.max(split_value + 1);
+            range_na.m.1 = range_na.m.1.min(split_value);
+        }
+        (Compare::Bigger, PartType::A) => {
+            range_ja.a.0 = range_ja.a.0.max(split_value + 1);
+            range_na.a.1 = range_na.a.1.min(split_value);
+        }
+        (Compare::Smaller, PartType::X) => {
+            range_ja.x.1 = range_ja.x.1.min(split_value - 1);
+            range_na.x.0 = range_na.x.0.max(split_value);
+        }
+        (Compare::Smaller, PartType::S) => {
+            range_ja.s.1 = range_ja.s.1.min(split_value - 1);
+            range_na.s.0 = range_na.s.0.max(split_value);
+        }
+        (Compare::Smaller, PartType::M) => {
+            range_ja.m.1 = range_ja.m.1.min(split_value - 1);
+            range_na.m.0 = range_na.m.0.max(split_value);
+        }
+        (Compare::Smaller, PartType::A) => {
+            range_ja.a.1 = range_ja.a.1.min(split_value - 1);
+            range_na.a.0 = range_na.a.0.max(split_value);
+        }
+    };
+
+    (range_ja, range_na)
 }
 
 fn resolve_part(part: &Part, workflows: &HashMap<String, Vec<Rule>>, start: String) -> bool {
