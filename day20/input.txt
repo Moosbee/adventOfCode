@@ -1,6 +1,6 @@
 %hm -> cr
 %qc -> nd
-&dh -> rm
+&dh -> rm, output
 %ph -> zz
 %ps -> kc, dt
 %qb -> dt
@@ -20,7 +20,7 @@ broadcaster -> np, mg, vd, xr
 %mg -> dz, gr
 &dt -> vd, dv, dh, hm, ks, hd, kq
 %ks -> qf
-&qd -> rm
+&qd -> rm, output
 %xr -> vt, rn
 %vr -> tg, vt
 %lc -> xm
@@ -43,11 +43,11 @@ broadcaster -> np, mg, vd, xr
 %kq -> hd
 %xd -> xg, gr
 %tg -> sr, vt
-&bb -> rm
+&bb -> rm, output
 %rn -> vt, qc
 %hd -> ps
 %qg -> xm, qj
-&dp -> rm
+&dp -> rm, output
 %qn -> pc
 %kt -> jl
 %sv -> bv

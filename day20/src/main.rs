@@ -114,12 +114,20 @@ fn main() {
     let mut true_count = 0;
     let mut false_count = 0;
 
-    for _index in 0..1000 {
-        println!("New Button press\n");
+    let broadcaster_node = *module_hashmap.get("broadcaster").unwrap();
+    // let output_node = *module_hashmap.get("output").unwrap();
+
+    let mut stop = false;
+    let mut index = 0;
+    for _index in 0..10000 {
+        if stop {
+            break;
+        }
+        index += 1;// 244.055.946.148.853
 
         update_queue.push_back(ModuleUpdate {
-            old_module_node: *module_hashmap.get("broadcaster").unwrap(),
-            new_module_node: *module_hashmap.get("broadcaster").unwrap(),
+            old_module_node: broadcaster_node,
+            new_module_node: broadcaster_node,
             state: false,
         });
 
@@ -128,22 +136,28 @@ fn main() {
             if next_update_opt.is_some() {
                 let next_update = next_update_opt.unwrap();
                 match next_update.state {
-                    true => true_count += 1,
-                    false => false_count += 1,
+                    true => {
+                        true_count += 1;
+                    }
+                    false => {
+                        false_count += 1;
+                    }
                 }
-                update_module(
-                    next_update.old_module_node,
-                    next_update.new_module_node,
-                    next_update.state,
-                    &mut module_graph,
-                    &mut update_queue,
-                );
+                stop = stop
+                    || update_module(
+                        next_update.old_module_node,
+                        next_update.new_module_node,
+                        next_update.state,
+                        index,
+                        &mut module_graph,
+                        &mut update_queue,
+                    );
             }
         }
     }
     println!(
         "\nAfter {} turns\n{} \n can be displayed in https://viz-js.com/\n",
-        1000,
+        10000,
         Dot::new(&module_graph)
     );
 
@@ -160,9 +174,10 @@ fn update_module(
     old_module_node: NodeIndex,
     new_module_node: NodeIndex,
     state: bool,
+    run_count: i32,
     module_graph: &mut DiGraph<Module, Edge>,
     update_queue: &mut VecDeque<ModuleUpdate>,
-) {
+) -> bool {
     {
         let edges: Vec<_>;
         {
@@ -182,44 +197,32 @@ fn update_module(
         }
     }
     let module_opt = module_graph.node_weight(new_module_node);
-    // print!(
-    //     "Updating with state: {:?} module: {:?}. -> ",
-    //     state, module_opt,
-    // );
 
     let module = module_opt.expect("Should exist");
-    println!(
-        "{} -{}-> {}",
-        module_graph.node_weight(old_module_node).unwrap().id,
-        state,
-        module.id
-    );
+    // println!(
+    //     "{} -{}-> {}",
+    //     module_graph.node_weight(old_module_node).unwrap().id,
+    //     state,
+    //     module.id
+    // );
     match module.m_type {
-        ModuleType::FlipFlop => update_flip_flop_module(
-            old_module_node,
-            new_module_node,
-            state,
-            module_graph,
-            update_queue,
-        ),
-        ModuleType::Conjunction => update_conjunction_module(
-            old_module_node,
-            new_module_node,
-            state,
-            module_graph,
-            update_queue,
-        ),
-        ModuleType::Broadcast => update_broadcast_module(
-            old_module_node,
-            new_module_node,
-            state,
-            module_graph,
-            update_queue,
-        ),
+        ModuleType::FlipFlop => {
+            update_flip_flop_module(new_module_node, state, module_graph, update_queue);
+            false
+        }
+        ModuleType::Conjunction => {
+            update_conjunction_module(new_module_node, module_graph, update_queue);
+            false
+        }
+        ModuleType::Broadcast => {
+            update_broadcast_module(new_module_node, state, module_graph, update_queue);
+            false
+        }
         ModuleType::Output => update_output_module(
             old_module_node,
             new_module_node,
             state,
+            run_count,
             module_graph,
             update_queue,
         ),
@@ -227,7 +230,6 @@ fn update_module(
 }
 
 fn update_flip_flop_module(
-    _old_module_node: NodeIndex,
     new_module_node: NodeIndex,
     state: bool,
     module_graph: &mut DiGraph<Module, Edge>,
@@ -257,9 +259,7 @@ fn update_flip_flop_module(
     }
 }
 fn update_conjunction_module(
-    _old_module_node: NodeIndex,
     new_module_node: NodeIndex,
-    _state: bool,
     module_graph: &mut DiGraph<Module, Edge>,
     update_queue: &mut VecDeque<ModuleUpdate>,
 ) {
@@ -294,7 +294,6 @@ fn update_conjunction_module(
     }
 }
 fn update_broadcast_module(
-    _old_module_node: NodeIndex,
     new_module_node: NodeIndex,
     state: bool,
     module_graph: &mut DiGraph<Module, Edge>,
@@ -309,7 +308,7 @@ fn update_broadcast_module(
         update_queue.push_back(ModuleUpdate {
             old_module_node: new_module_node,
             new_module_node: *out,
-            state: state,
+            state,
         });
         // update_module(new_module_node, *out, state, module_graph, update_queue);
     }
@@ -317,14 +316,67 @@ fn update_broadcast_module(
 fn update_output_module(
     old_module_node: NodeIndex,
     _new_module_node: NodeIndex,
-    state: bool,
+    _state: bool,
+    _run_count: i32,
     _module_graph: &mut DiGraph<Module, Edge>,
     _update_queue: &mut VecDeque<ModuleUpdate>,
-) {
-    println!(
-        "Output reached from {:?} with value {}",
-        old_module_node, state
-    );
+) -> bool {
+    let old_module = _module_graph.node_weight(old_module_node).unwrap();
+    match &old_module.id[..] {
+        "dh" => {
+            if _state {
+                println!(
+                    "Output reached from {} after {} round",
+                    old_module, _run_count
+                );
+            }
+            false
+        }
+        "dp" => {
+            if _state {
+                println!(
+                    "Output reached from {} after {} round",
+                    old_module, _run_count
+                );
+            }
+            false
+        }
+        "bb" => {
+            if _state {
+                println!(
+                    "Output reached from {} after {} round",
+                    old_module, _run_count
+                );
+            }
+            false
+        }
+        "qd" => {
+            if _state {
+                println!(
+                    "Output reached from {} after {} round",
+                    old_module, _run_count
+                );
+            }
+
+            false
+        }
+        "rm" => {
+            if !_state {
+                println!(
+                    "Output reached from {} after {} round",
+                    old_module, _run_count
+                );
+            }
+            false
+        }
+        _ => {
+            println!(
+                "Output reached from {:?} with value {} after {} round",
+                old_module, _state, _run_count
+            );
+            false
+        }
+    }
 }
 
 fn parse_module(line: &str) -> Result<Module, String> {
