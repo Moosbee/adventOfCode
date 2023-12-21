@@ -5,8 +5,7 @@ use std::time::Instant;
 
 fn main() {
     let start = Instant::now();
-    let input =
-        fs::read_to_string("./input.txt").expect("Should have been able to read the file");
+    let input = fs::read_to_string("./input.txt").expect("Should have been able to read the file");
 
     let input_lines = input.lines();
 
@@ -40,33 +39,53 @@ fn main() {
     //     steps[0], garden[steps[0].0][steps[0].1]
     // );
 
-    for _i in 0..(5000 as i32) {
+    //     26501365
+
+    // 26501365*1,13
+
+    // 29946542,45
+
+    // 5472,3434148452
+
+    let mut all_steps: HashMap<(i32, i32), bool> = HashMap::new();
+
+    for _i in 0..(10000 as i32) {
         // 5148 / 2574 / 20
         let mut new_steps: HashMap<(i32, i32), bool> = HashMap::new();
 
         for step in steps {
             if can_go((step.0 .0 - 1, step.0 .1), &garden) {
                 new_steps.insert((step.0 .0 - 1, step.0 .1), true);
+                all_steps.insert((step.0 .0 - 1, step.0 .1), true);
             }
             if can_go((step.0 .0 + 1, step.0 .1), &garden) {
                 new_steps.insert((step.0 .0 + 1, step.0 .1), true);
+                all_steps.insert((step.0 .0 + 1, step.0 .1), true);
             }
             if can_go((step.0 .0, step.0 .1 - 1), &garden) {
                 new_steps.insert((step.0 .0, step.0 .1 - 1), true);
+                all_steps.insert((step.0 .0, step.0 .1 - 1), true);
             }
             if can_go((step.0 .0, step.0 .1 + 1), &garden) {
                 new_steps.insert((step.0 .0, step.0 .1 + 1), true);
+                all_steps.insert((step.0 .0, step.0 .1 + 1), true);
             }
         }
         steps = new_steps;
 
         println!(
-            "Step {} count {} max {} diff {}",
+            "Step {} count {} max {} diff {} all {} all half {} diff {}",
             _i + 1,
             steps.len(),
-            _i.pow(2),
-            (_i.pow(2) as f64) / steps.len() as f64
+            (_i + 1).pow(2),
+            ((_i + 1).pow(2) as f64) / steps.len() as f64,
+            all_steps.len(),
+            all_steps.len() / 2,
+            steps.len() as i32 - (all_steps.len() / 2) as i32
         );
+        if steps.len() == 26501365 {
+            break;
+        }
     }
 
     // println!(
