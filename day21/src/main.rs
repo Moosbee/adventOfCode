@@ -1,132 +1,511 @@
-use std::collections::HashMap;
+use core::num;
 use std::fs;
 
 use std::time::Instant;
 
+use colored::Colorize;
+
+#[derive(Debug, Clone, Copy)]
+struct Pos {
+    p_type: char,
+    state: bool,
+}
+
 fn main() {
     let start = Instant::now();
-    let input = fs::read_to_string("./input.txt").expect("Should have been able to read the file");
+    let input =
+        fs::read_to_string("./test_2_input.txt").expect("Should have been able to read the file");
 
     let input_lines = input.lines();
 
     println!("Files Lines {}", input_lines.clone().count());
 
-    let garden: Vec<Vec<char>> = input_lines.map(|f| f.chars().collect()).collect();
+    let garden: Vec<Vec<Pos>> = input_lines
+        .map(|f| {
+            f.chars()
+                .map(|l| Pos {
+                    p_type: if l == '#' { '#' } else { '.' },
+                    state: false,
+                })
+                .collect()
+        })
+        .collect();
 
-    print_garden(&garden);
+    let from_up_left: Vec<Stats> = get_stats(garden.clone(), (0, 0));
+    let from_up_middle: Vec<Stats> = get_stats(garden.clone(), (0, garden[0].len() / 2));
+    let from_up_right: Vec<Stats> = get_stats(garden.clone(), (0, garden[0].len() - 1));
+    let from_middle_left: Vec<Stats> = get_stats(garden.clone(), (garden.len() / 2, 0));
+    let from_middle_middle: Vec<Stats> =
+        get_stats(garden.clone(), (garden.len() / 2, garden[0].len() / 2));
+    let from_middle_right: Vec<Stats> =
+        get_stats(garden.clone(), (garden.len() / 2, garden[0].len() - 1));
+    let from_bottom_left: Vec<Stats> = get_stats(garden.clone(), (garden.len() - 1, 0));
+    let from_bottom_middle: Vec<Stats> =
+        get_stats(garden.clone(), (garden.len() - 1, garden[0].len() / 2));
+    let from_bottom_right: Vec<Stats> =
+        get_stats(garden.clone(), (garden.len() - 1, garden[0].len() - 1));
 
-    // for _index in -100..100 {
-    //     for _index_r in -100..100 {
-    //         can_go((_index, _index_r), &garden);
-    //     }
-    // }
+    // println!("from_up_left: {:?}", from_up_left);
+    // println!("from_up_middle: {:?}", from_up_middle);
+    // println!("from_up_right: {:?}", from_up_right);
+    // println!("from_middle_left: {:?}", from_middle_left);
+    // println!("from_middle_middle: {:?}", from_middle_middle);
+    // println!("from_middle_right: {:?}", from_middle_right);
+    // println!("from_bottom_left: {:?}", from_bottom_left);
+    // println!("from_bottom_middle: {:?}", from_bottom_middle);
+    // println!("from_bottom_right: {:?}", from_bottom_right);
 
-    // let mut steps: Vec<(usize, usize)> = vec![(
-    //     (garden.len() / 2).try_into().unwrap(),
-    //     (garden[0].len() / 2).try_into().unwrap(),
-    // )];
-    let mut steps: HashMap<(i32, i32), bool> = HashMap::new();
-    steps.insert(
-        (
-            (garden.len() / 2).try_into().unwrap(),
-            (garden[0].len() / 2).try_into().unwrap(),
-        ),
-        true,
-    );
+    println!();
+    println!();
+    println!();
 
-    // println!(
-    //     "Char at {:?} is {}",
-    //     steps[0], garden[steps[0].0][steps[0].1]
+    // test(
+    //     &garden,
+    //     &from_up_left,
+    //     &from_up_middle,
+    //     &from_up_right,
+    //     &from_middle_left,
+    //     &from_middle_middle,
+    //     &from_middle_right,
+    //     &from_bottom_left,
+    //     &from_bottom_middle,
+    //     &from_bottom_right,
     // );
 
-    //     26501365
+    let numbers = vec![38, 64, 86, 140, 141, 200, 1002]; //, 3396, 658, 2687, 1716, 3910, 4178, 4678, 3887, 3432,
+                                                         // ];
 
-    // 26501365*1,13
-
-    // 29946542,45
-
-    // 5472,3434148452
-
-    let mut all_steps: HashMap<(i32, i32), bool> = HashMap::new();
-
-    for _i in 0..(10000 as i32) {
-        // 5148 / 2574 / 20
-        let mut new_steps: HashMap<(i32, i32), bool> = HashMap::new();
-
-        for step in steps {
-            if can_go((step.0 .0 - 1, step.0 .1), &garden) {
-                new_steps.insert((step.0 .0 - 1, step.0 .1), true);
-                all_steps.insert((step.0 .0 - 1, step.0 .1), true);
-            }
-            if can_go((step.0 .0 + 1, step.0 .1), &garden) {
-                new_steps.insert((step.0 .0 + 1, step.0 .1), true);
-                all_steps.insert((step.0 .0 + 1, step.0 .1), true);
-            }
-            if can_go((step.0 .0, step.0 .1 - 1), &garden) {
-                new_steps.insert((step.0 .0, step.0 .1 - 1), true);
-                all_steps.insert((step.0 .0, step.0 .1 - 1), true);
-            }
-            if can_go((step.0 .0, step.0 .1 + 1), &garden) {
-                new_steps.insert((step.0 .0, step.0 .1 + 1), true);
-                all_steps.insert((step.0 .0, step.0 .1 + 1), true);
-            }
-        }
-        steps = new_steps;
-
-        println!(
-            "Step {} count {} max {} diff {} all {} all half {} diff {}",
-            _i + 1,
-            steps.len(),
-            (_i + 1).pow(2),
-            ((_i + 1).pow(2) as f64) / steps.len() as f64,
-            all_steps.len(),
-            all_steps.len() / 2,
-            steps.len() as i32 - (all_steps.len() / 2) as i32
+    for number in numbers {
+        let erg = calc_stats_of_step(
+            &garden,
+            &from_up_left,
+            &from_up_middle,
+            &from_up_right,
+            &from_middle_left,
+            &from_middle_middle,
+            &from_middle_right,
+            &from_bottom_left,
+            &from_bottom_middle,
+            &from_bottom_right,
+            number,
         );
-        if steps.len() == 26501365 {
-            break;
+        let text;
+        if erg.dot_ja_count == ((number + 1) as i32).pow(2).try_into().unwrap() {
+            text = "ja#######".green()
+        } else {
+            text = "na######".red()
         }
+        println!(
+            "For Number {} erg {:?} is equal to {} {}",
+            number,
+            erg,
+            ((number + 1) as i32).pow(2),
+            text
+        );
     }
 
-    // println!(
-    //     "Start of graph {:?} graph\n{:?} \n can be displayed in https://viz-js.com/",
-    //     start_point,
-    //     Dot::new(&plots)
-    // );
-
-    println!("Solution: {} Took {:?}", steps.len(), start.elapsed())
+    println!(
+        "Solution: {} Took {:?}",
+        from_middle_middle.len(),
+        start.elapsed()
+    )
 }
 
-fn can_go(pos: (i32, i32), garden: &Vec<Vec<char>>) -> bool {
-    let line_index_num = pos.0 % garden.len() as i32;
-    let line_index = if line_index_num < 0 {
-        garden.len() - line_index_num.abs() as usize
-    } else {
-        line_index_num.abs() as usize
-    };
-    let row_index_num = pos.1 % garden[line_index].len() as i32;
-
-    let row_index = if row_index_num < 0 {
-        garden[line_index].len() - row_index_num.abs() as usize
-    } else {
-        row_index_num.abs() as usize
-    };
-    let chr = garden[line_index][row_index];
-    // println!(
-    //     "Char at pos {:?} index {} {} is {}",
-    //     pos, line_index, row_index, chr
-    // );
-
-    chr != '#'
-}
-
-fn print_garden(garden: &Vec<Vec<char>>) {
+fn print_garden(garden: &Vec<Vec<Pos>>) {
     for garden_line in garden {
         print!("  ");
 
         for plot in garden_line {
-            print!("{}", plot)
+            if plot.state {
+                if plot.p_type != '#' {
+                    print!("{}", 'O'.to_string().green())
+                } else {
+                    print!("{}", plot.p_type.to_string().yellow())
+                }
+            } else {
+                print!("{}", plot.p_type)
+            }
         }
         println!()
+    }
+}
+
+/// assumes from the middle
+fn calc_stats_of_step(
+    garden: &Vec<Vec<Pos>>,
+    from_up_left: &Vec<Stats>,
+    from_up_middle: &Vec<Stats>,
+    from_up_right: &Vec<Stats>,
+    from_middle_left: &Vec<Stats>,
+    from_middle_middle: &Vec<Stats>,
+    from_middle_right: &Vec<Stats>,
+    from_bottom_left: &Vec<Stats>,
+    from_bottom_middle: &Vec<Stats>,
+    from_bottom_right: &Vec<Stats>,
+    step: usize,
+) -> Stats {
+    let garden_size = garden.len();
+
+    if step < garden_size / 2 {
+        return from_middle_middle[step - 1];
+    }
+    if step < garden_size {
+        let next_step = step;
+
+        let step_amount = next_step / garden_size;
+        let step_rest = next_step % (garden_size / 2);
+
+        let middle_middle = from_middle_middle[step - 1];
+        let up_middle = from_up_middle[step_rest - 2];
+        let middle_left = from_middle_left[step_rest - 2];
+        let middle_right = from_middle_right[step_rest - 2];
+        let bottom_middle = from_bottom_middle[step_rest - 2];
+
+        let dot_ja_count = (middle_middle.dot_ja_count)
+            + up_middle.dot_ja_count
+            + middle_left.dot_ja_count
+            + middle_right.dot_ja_count
+            + bottom_middle.dot_ja_count;
+
+        println!(
+            "Set Step {} size {} passt {} rest {} ja {}",
+            step, garden_size, step_amount, step_rest, dot_ja_count
+        );
+
+        return Stats {
+            step,
+            dot_ja_count,
+            dot_na_count: 0,
+            raute_ja_count: 0,
+            raute_na_count: 0,
+        };
+    }
+    let next_step = step;
+
+    let step_amount = next_step / garden_size;
+    let step_rest = next_step % garden_size;
+
+    if step < (garden_size + garden_size / 2) {
+        let step_rest = next_step % garden_size;
+        let step_rest_long = (next_step % garden_size) + (garden_size / 2);
+        let gerade = step % 2;
+        let middle_middle = from_middle_middle[from_middle_middle.len() - 2 + gerade];
+        let middle_left = from_middle_left[step_rest_long - 1];
+        let middle_right = from_middle_right[step_rest_long - 1];
+        let bottom_middle = from_bottom_middle[step_rest_long - 1];
+        let up_middle = from_up_middle[step_rest_long - 1];
+
+        let up_left = from_up_left[step_rest - 2];
+        let up_right = from_up_right[step_rest - 2];
+        let bottom_left = from_bottom_left[step_rest - 2];
+        let bottom_right = from_bottom_right[step_rest - 2];
+
+        let dot_ja_count = middle_middle.dot_ja_count// * step_amount * step_amount
+            + up_middle.dot_ja_count
+            + middle_left.dot_ja_count
+            + middle_right.dot_ja_count
+            + bottom_middle.dot_ja_count
+            + up_left.dot_ja_count
+            + up_right.dot_ja_count
+            + bottom_left.dot_ja_count
+            + bottom_right.dot_ja_count;
+
+        println!(
+            "L Step {} size {} passt {} rest {} ja {}",
+            step, garden_size, step_amount, step_rest, dot_ja_count
+        );
+
+        return Stats {
+            step,
+            dot_ja_count,
+            dot_na_count: 0,
+            raute_ja_count: 0,
+            raute_na_count: 0,
+        };
+    }
+    if step < (garden_size + garden_size) {
+        let step_rest = next_step % garden_size;
+        let step_small = next_step % garden_size -(garden_size / 2);
+        let gerade = step % 2;
+        let middle_middle = from_middle_middle[from_middle_middle.len() - 2 + gerade];
+
+        let middle_left = from_middle_left[step_rest+31];
+        let middle_right = from_middle_right[step_rest+31];
+        let bottom_middle = from_bottom_middle[step_rest+31];
+        let up_middle = from_up_middle[step_rest+31];
+
+        let middle_left_small = from_middle_left[step_small+31];
+        let middle_right_small = from_middle_right[step_small+31];
+        let bottom_middle_small = from_bottom_middle[step_small+31];
+        let up_middle_small = from_up_middle[step_small+31];
+
+        let up_left = from_up_left[step_rest+32];
+        let up_right = from_up_right[step_rest+32];
+        let bottom_left = from_bottom_left[step_rest+32];
+        let bottom_right = from_bottom_right[step_rest+32];
+
+        let dot_ja_count = 
+        middle_middle.dot_ja_count// * step_amount * step_amount
+          + up_middle.dot_ja_count
+          + middle_left.dot_ja_count
+          + middle_right.dot_ja_count
+          + bottom_middle.dot_ja_count
+          + middle_left_small.dot_ja_count
+          + middle_right_small.dot_ja_count
+          + bottom_middle_small.dot_ja_count
+          + up_middle_small.dot_ja_count
+          + up_left.dot_ja_count
+          + up_right.dot_ja_count
+          + bottom_left.dot_ja_count
+          + bottom_right.dot_ja_count;
+
+        println!(
+            "K Step {} size {} passt {} rest {} ja {} small {}",
+            step, garden_size, step_amount, step_rest, dot_ja_count, step_small
+        );
+
+        return Stats {
+            step,
+            dot_ja_count,
+            dot_na_count: 0,
+            raute_ja_count: 0,
+            raute_na_count: 0,
+        };
+    }
+
+    // let grade = next_step % 2;
+
+    if step_rest < garden_size / 2 {
+        let step_rest = (next_step % garden_size) + 2;
+        let step_rest_half = (garden_size - next_step % (garden_size / 2)) + 2;
+        let middle_middle = from_middle_middle[from_middle_middle.len() - 1];
+        let middle_left = from_middle_left[step_rest];
+        let middle_right = from_middle_right[step_rest];
+        let bottom_middle = from_bottom_middle[step_rest];
+        let up_middle = from_up_middle[step_rest];
+
+        let middle_left_half = from_middle_left[step_rest_half];
+        let middle_right_half = from_middle_right[step_rest_half];
+        let bottom_middle_half = from_bottom_middle[step_rest_half];
+        let up_middle_half = from_up_middle[step_rest_half];
+
+        let up_left = from_up_left[step_rest];
+        let up_right = from_up_right[step_rest];
+        let bottom_left = from_bottom_left[step_rest];
+        let bottom_right = from_bottom_right[step_rest];
+
+        let up_left_half = from_up_left[step_rest_half];
+        let up_right_half = from_up_right[step_rest_half];
+        let bottom_left_half = from_bottom_left[step_rest_half];
+        let bottom_right_half = from_bottom_right[step_rest_half];
+
+        let dot_ja_count = (middle_middle.dot_ja_count * step_amount * step_amount)
+            + up_middle.dot_ja_count
+            + middle_left.dot_ja_count
+            + middle_right.dot_ja_count
+            + bottom_middle.dot_ja_count
+            + up_middle_half.dot_ja_count
+            + middle_left_half.dot_ja_count
+            + middle_right_half.dot_ja_count
+            + bottom_middle_half.dot_ja_count
+            + up_left.dot_ja_count * step_amount
+            + up_right.dot_ja_count * step_amount
+            + bottom_left.dot_ja_count * step_amount
+            + bottom_right.dot_ja_count * step_amount
+            + up_left_half.dot_ja_count * step_amount
+            + up_right_half.dot_ja_count * step_amount
+            + bottom_left_half.dot_ja_count * step_amount
+            + bottom_right_half.dot_ja_count * step_amount;
+
+        println!(
+            "S Step {} size {} passt {} rest {} ja {}",
+            step, garden_size, step_amount, step_rest, dot_ja_count
+        );
+
+        Stats {
+            step,
+            dot_ja_count,
+            dot_na_count: 0,
+            raute_ja_count: 0,
+            raute_na_count: 0,
+        }
+    } else {
+        let middle_middle = from_middle_middle[from_middle_middle.len() - 1];
+        let up_left = from_up_left[step_rest];
+        let up_middle = from_up_middle[step_rest];
+        let up_right = from_up_right[step_rest];
+        let middle_left = from_middle_left[step_rest];
+        let middle_right = from_middle_right[step_rest];
+        let bottom_left = from_bottom_left[step_rest];
+        let bottom_middle = from_bottom_middle[step_rest];
+        let bottom_right = from_bottom_right[step_rest];
+
+        let dot_ja_count = (middle_middle.dot_ja_count * step_amount * step_amount)
+            + up_middle.dot_ja_count
+            + middle_left.dot_ja_count
+            + middle_right.dot_ja_count
+            + bottom_middle.dot_ja_count
+            + up_left.dot_ja_count * step_amount
+            + up_right.dot_ja_count * step_amount
+            + bottom_left.dot_ja_count * step_amount
+            + bottom_right.dot_ja_count * step_amount;
+
+        println!(
+            "B Step {} size {} passt {} rest {} ja {}",
+            step, garden_size, step_amount, step_rest, dot_ja_count
+        );
+
+        Stats {
+            step,
+            dot_ja_count,
+            dot_na_count: 0,
+            raute_ja_count: 0,
+            raute_na_count: 0,
+        }
+    }
+}
+
+fn get_stats(start: Vec<Vec<Pos>>, start_i: (usize, usize)) -> Vec<Stats> {
+    let start_garden: Vec<Vec<Pos>> = start;
+
+    let mut garden = start_garden.clone();
+
+    garden[start_i.0][start_i.1].state = true;
+
+    // print_garden(&garden);
+
+    let mut stats: Vec<_> = vec![];
+
+    for _i in 0..garden.len() {
+        let mut new_garden: Vec<Vec<Pos>> = start_garden.clone();
+        let mut step_count = 0;
+        for (line_index, garden_line) in garden.iter().enumerate() {
+            for (plot_index, plot) in garden_line.iter().enumerate() {
+                if plot.p_type != '#' && plot.state {
+                    if line_index != 0 {
+                        if !new_garden[line_index - 1][plot_index].state
+                            && new_garden[line_index - 1][plot_index].p_type != '#'
+                        {
+                            step_count = step_count + 1;
+                        }
+                        new_garden[line_index - 1][plot_index].state = true; // UP
+                    }
+                    if line_index + 1 < new_garden.len() {
+                        if !new_garden[line_index + 1][plot_index].state
+                            && new_garden[line_index + 1][plot_index].p_type != '#'
+                        {
+                            step_count = step_count + 1;
+                        }
+                        new_garden[line_index + 1][plot_index].state = true; // DOWN
+                    }
+                    if plot_index != 0 {
+                        if !new_garden[line_index][plot_index - 1].state
+                            && new_garden[line_index][plot_index - 1].p_type != '#'
+                        {
+                            step_count = step_count + 1;
+                        }
+                        new_garden[line_index][plot_index - 1].state = true; // LEFT
+                    }
+                    if plot_index + 1 < new_garden[line_index].len() {
+                        if !new_garden[line_index][plot_index + 1].state
+                            && new_garden[line_index][plot_index + 1].p_type != '#'
+                        {
+                            step_count = step_count + 1;
+                        }
+                        new_garden[line_index][plot_index + 1].state = true; // RIGHT
+                    }
+                }
+            }
+        }
+        garden = new_garden;
+        stats.push(calc_steps(&garden, _i));
+        // println!("Step {} count {}", _i + 1, step_count);
+        // print_garden(&garden);
+    }
+    // print_garden(&garden);
+
+    stats
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Stats {
+    step: usize,
+    dot_ja_count: usize,
+    dot_na_count: usize,
+    raute_ja_count: usize,
+    raute_na_count: usize,
+}
+
+fn calc_steps(garden: &Vec<Vec<Pos>>, step: usize) -> Stats {
+    let mut dot_ja_count = 0;
+    let mut dot_na_count = 0;
+    let mut raute_ja_count = 0;
+    let mut raute_na_count = 0;
+    for garden_line in garden {
+        for plot in garden_line {
+            if plot.state {
+                if plot.p_type == '.' {
+                    dot_ja_count += 1;
+                } else {
+                    raute_ja_count += 1;
+                }
+            } else {
+                if plot.p_type == '.' {
+                    dot_na_count += 1;
+                } else {
+                    raute_na_count += 1;
+                }
+            }
+        }
+    }
+    Stats {
+        step,
+        dot_ja_count,
+        dot_na_count,
+        raute_ja_count,
+        raute_na_count,
+    }
+}
+
+fn test(
+    garden: &Vec<Vec<Pos>>,
+    from_up_left: &Vec<Stats>,
+    from_up_middle: &Vec<Stats>,
+    from_up_right: &Vec<Stats>,
+    from_middle_left: &Vec<Stats>,
+    from_middle_middle: &Vec<Stats>,
+    from_middle_right: &Vec<Stats>,
+    from_bottom_left: &Vec<Stats>,
+    from_bottom_middle: &Vec<Stats>,
+    from_bottom_right: &Vec<Stats>,
+) {
+    let number_list: Vec<(usize, usize)> = vec![
+        (38, 1343),
+        (252, 56512),
+        (412, 150446),
+        (1489, 1960349),
+        (2187, 4228130),
+        (3019, 8055797),
+    ];
+
+    for number in number_list {
+        let erg = calc_stats_of_step(
+            garden,
+            from_up_left,
+            from_up_middle,
+            from_up_right,
+            from_middle_left,
+            from_middle_middle,
+            from_middle_right,
+            from_bottom_left,
+            from_bottom_middle,
+            from_bottom_right,
+            number.0,
+        );
+        println!(
+            "For Number {} erg {:?} is equal to {}",
+            number.0, erg, number.1
+        );
+        assert_eq!(erg.dot_ja_count, number.1)
     }
 }
