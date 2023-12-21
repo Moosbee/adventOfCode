@@ -1,92 +1,72 @@
+use std::collections::HashMap;
 use std::fs;
 
 use std::time::Instant;
 
-use colored::Colorize;
-
-#[derive(Debug, Clone, Copy)]
-struct Pos {
-    p_type: char,
-    state: bool,
-}
-
 fn main() {
     let start = Instant::now();
-    let input = fs::read_to_string("./input.txt").expect("Should have been able to read the file");
+    let input =
+        fs::read_to_string("./input.txt").expect("Should have been able to read the file");
 
     let input_lines = input.lines();
 
     println!("Files Lines {}", input_lines.clone().count());
 
-    let mut garden: Vec<Vec<Pos>> = input_lines
-        .clone()
-        .map(|f| {
-            f.chars()
-                .map(|l| Pos {
-                    p_type: l,
-                    state: l == 'S',
-                })
-                .collect()
-        })
-        .collect();
-
-    let start_garden: Vec<Vec<Pos>> = input_lines
-        .map(|f| {
-            f.chars()
-                .map(|l| Pos {
-                    p_type: l,
-                    state: false,
-                })
-                .collect()
-        })
-        .collect();
+    let garden: Vec<Vec<char>> = input_lines.map(|f| f.chars().collect()).collect();
 
     print_garden(&garden);
 
-    for _i in 0..64 {
-        let mut new_garden: Vec<Vec<Pos>> = start_garden.clone();
-        let mut step_count = 0;
-        for (line_index, garden_line) in garden.iter().enumerate() {
-            for (plot_index, plot) in garden_line.iter().enumerate() {
-                if plot.p_type != '#' && plot.state {
-                    if line_index != 0 {
-                        if !new_garden[line_index - 1][plot_index].state
-                            && new_garden[line_index - 1][plot_index].p_type != '#'
-                        {
-                            step_count = step_count + 1;
-                        }
-                        new_garden[line_index - 1][plot_index].state = true; // UP
-                    }
-                    if line_index + 1 < new_garden.len() {
-                        if !new_garden[line_index + 1][plot_index].state
-                            && new_garden[line_index + 1][plot_index].p_type != '#'
-                        {
-                            step_count = step_count + 1;
-                        }
-                        new_garden[line_index + 1][plot_index].state = true; // DOWN
-                    }
-                    if plot_index != 0 {
-                        if !new_garden[line_index][plot_index - 1].state
-                            && new_garden[line_index][plot_index - 1].p_type != '#'
-                        {
-                            step_count = step_count + 1;
-                        }
-                        new_garden[line_index][plot_index - 1].state = true; // LEFT
-                    }
-                    if plot_index + 1 < new_garden[line_index].len() {
-                        if !new_garden[line_index][plot_index + 1].state
-                            && new_garden[line_index][plot_index + 1].p_type != '#'
-                        {
-                            step_count = step_count + 1;
-                        }
-                        new_garden[line_index][plot_index + 1].state = true; // RIGHT
-                    }
-                }
+    // for _index in -100..100 {
+    //     for _index_r in -100..100 {
+    //         can_go((_index, _index_r), &garden);
+    //     }
+    // }
+
+    // let mut steps: Vec<(usize, usize)> = vec![(
+    //     (garden.len() / 2).try_into().unwrap(),
+    //     (garden[0].len() / 2).try_into().unwrap(),
+    // )];
+    let mut steps: HashMap<(i32, i32), bool> = HashMap::new();
+    steps.insert(
+        (
+            (garden.len() / 2).try_into().unwrap(),
+            (garden[0].len() / 2).try_into().unwrap(),
+        ),
+        true,
+    );
+
+    // println!(
+    //     "Char at {:?} is {}",
+    //     steps[0], garden[steps[0].0][steps[0].1]
+    // );
+
+    for _i in 0..(5000 as i32) {
+        // 5148 / 2574 / 20
+        let mut new_steps: HashMap<(i32, i32), bool> = HashMap::new();
+
+        for step in steps {
+            if can_go((step.0 .0 - 1, step.0 .1), &garden) {
+                new_steps.insert((step.0 .0 - 1, step.0 .1), true);
+            }
+            if can_go((step.0 .0 + 1, step.0 .1), &garden) {
+                new_steps.insert((step.0 .0 + 1, step.0 .1), true);
+            }
+            if can_go((step.0 .0, step.0 .1 - 1), &garden) {
+                new_steps.insert((step.0 .0, step.0 .1 - 1), true);
+            }
+            if can_go((step.0 .0, step.0 .1 + 1), &garden) {
+                new_steps.insert((step.0 .0, step.0 .1 + 1), true);
             }
         }
-        garden = new_garden;
-        println!("Step {} count {}", _i + 1, step_count);
-        print_garden(&garden);
+        steps = new_steps;
+
+        println!(
+            "Step {} count {} max {} diff {}",
+            _i + 1,
+            steps.len(),
+            _i.pow(2),
+            (_i.pow(2) as f64) / steps.len() as f64
+        );
     }
 
     // println!(
@@ -95,42 +75,39 @@ fn main() {
     //     Dot::new(&plots)
     // );
 
-    println!(
-        "Solution: {} Took {:?}",
-        calc_steps(&garden),
-        start.elapsed()
-    )
+    println!("Solution: {} Took {:?}", steps.len(), start.elapsed())
 }
 
-fn print_garden(garden: &Vec<Vec<Pos>>) {
+fn can_go(pos: (i32, i32), garden: &Vec<Vec<char>>) -> bool {
+    let line_index_num = pos.0 % garden.len() as i32;
+    let line_index = if line_index_num < 0 {
+        garden.len() - line_index_num.abs() as usize
+    } else {
+        line_index_num.abs() as usize
+    };
+    let row_index_num = pos.1 % garden[line_index].len() as i32;
+
+    let row_index = if row_index_num < 0 {
+        garden[line_index].len() - row_index_num.abs() as usize
+    } else {
+        row_index_num.abs() as usize
+    };
+    let chr = garden[line_index][row_index];
+    // println!(
+    //     "Char at pos {:?} index {} {} is {}",
+    //     pos, line_index, row_index, chr
+    // );
+
+    chr != '#'
+}
+
+fn print_garden(garden: &Vec<Vec<char>>) {
     for garden_line in garden {
         print!("  ");
 
         for plot in garden_line {
-            if plot.state {
-                if plot.p_type != '#' {
-                    print!("{}", 'O'.to_string().green())
-                } else {
-                    print!("{}", plot.p_type.to_string().yellow())
-                }
-            } else {
-                print!("{}", plot.p_type)
-            }
+            print!("{}", plot)
         }
         println!()
     }
-}
-
-fn calc_steps(garden: &Vec<Vec<Pos>>) -> i32 {
-    let mut count = 0;
-    for garden_line in garden {
-        for plot in garden_line {
-            if plot.state {
-                if plot.p_type != '#' {
-                    count += 1;
-                }
-            }
-        }
-    }
-    count
 }
