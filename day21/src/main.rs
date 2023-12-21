@@ -31,18 +31,18 @@ fn main() {
         })
         .collect();
 
-    let from_up_left: Vec<Stats> = get_stats(garden.clone(), (0, 0));
-    let from_up_middle: Vec<Stats> = get_stats(garden.clone(), (0, garden[0].len() / 2));
-    let from_up_right: Vec<Stats> = get_stats(garden.clone(), (0, garden[0].len() - 1));
-    let from_middle_left: Vec<Stats> = get_stats(garden.clone(), (garden.len() / 2, 0));
-    let from_middle_middle: Vec<Stats> =
+    let from_up_left: Vec<usize> = get_stats(garden.clone(), (0, 0));
+    let from_up_middle: Vec<usize> = get_stats(garden.clone(), (0, garden[0].len() / 2));
+    let from_up_right: Vec<usize> = get_stats(garden.clone(), (0, garden[0].len() - 1));
+    let from_middle_left: Vec<usize> = get_stats(garden.clone(), (garden.len() / 2, 0));
+    let from_middle_middle: Vec<usize> =
         get_stats(garden.clone(), (garden.len() / 2, garden[0].len() / 2));
-    let from_middle_right: Vec<Stats> =
+    let from_middle_right: Vec<usize> =
         get_stats(garden.clone(), (garden.len() / 2, garden[0].len() - 1));
-    let from_bottom_left: Vec<Stats> = get_stats(garden.clone(), (garden.len() - 1, 0));
-    let from_bottom_middle: Vec<Stats> =
+    let from_bottom_left: Vec<usize> = get_stats(garden.clone(), (garden.len() - 1, 0));
+    let from_bottom_middle: Vec<usize> =
         get_stats(garden.clone(), (garden.len() - 1, garden[0].len() / 2));
-    let from_bottom_right: Vec<Stats> =
+    let from_bottom_right: Vec<usize> =
         get_stats(garden.clone(), (garden.len() - 1, garden[0].len() - 1));
 
     // println!("from_up_left: {:?}", from_up_left);
@@ -90,7 +90,7 @@ fn main() {
             number,
         );
         let text;
-        if erg.dot_ja_count == ((number + 1) as i32).pow(2).try_into().unwrap() {
+        if erg == ((number + 1) as i32).pow(2).try_into().unwrap() {
             text = "ja#######".green()
         } else {
             text = "na######".red()
@@ -133,17 +133,17 @@ fn print_garden(garden: &Vec<Vec<Pos>>) {
 /// assumes from the middle
 fn calc_stats_of_step(
     garden: &Vec<Vec<Pos>>,
-    from_up_left: &Vec<Stats>,
-    from_up_middle: &Vec<Stats>,
-    from_up_right: &Vec<Stats>,
-    from_middle_left: &Vec<Stats>,
-    from_middle_middle: &Vec<Stats>,
-    from_middle_right: &Vec<Stats>,
-    from_bottom_left: &Vec<Stats>,
-    from_bottom_middle: &Vec<Stats>,
-    from_bottom_right: &Vec<Stats>,
+    from_up_left: &Vec<usize>,
+    from_up_middle: &Vec<usize>,
+    from_up_right: &Vec<usize>,
+    from_middle_left: &Vec<usize>,
+    from_middle_middle: &Vec<usize>,
+    from_middle_right: &Vec<usize>,
+    from_bottom_left: &Vec<usize>,
+    from_bottom_middle: &Vec<usize>,
+    from_bottom_right: &Vec<usize>,
     step: usize,
-) -> Stats {
+) -> usize {
     let garden_size = garden.len();
 
     if step < garden_size / 2 {
@@ -161,24 +161,14 @@ fn calc_stats_of_step(
         let middle_right = from_middle_right[step_rest - 2];
         let bottom_middle = from_bottom_middle[step_rest - 2];
 
-        let dot_ja_count = (middle_middle.dot_ja_count)
-            + up_middle.dot_ja_count
-            + middle_left.dot_ja_count
-            + middle_right.dot_ja_count
-            + bottom_middle.dot_ja_count;
+        let dot_ja_count = (middle_middle) + up_middle + middle_left + middle_right + bottom_middle;
 
         println!(
             "Set Step {} size {} passt {} rest {} ja {}",
             step, garden_size, step_amount, step_rest, dot_ja_count
         );
 
-        return Stats {
-            step,
-            dot_ja_count,
-            dot_na_count: 0,
-            raute_ja_count: 0,
-            raute_na_count: 0,
-        };
+        return dot_ja_count;
     }
     let next_step = step;
 
@@ -200,77 +190,64 @@ fn calc_stats_of_step(
         let bottom_left = from_bottom_left[step_rest - 2];
         let bottom_right = from_bottom_right[step_rest - 2];
 
-        let dot_ja_count = middle_middle.dot_ja_count// * step_amount * step_amount
-            + up_middle.dot_ja_count
-            + middle_left.dot_ja_count
-            + middle_right.dot_ja_count
-            + bottom_middle.dot_ja_count
-            + up_left.dot_ja_count
-            + up_right.dot_ja_count
-            + bottom_left.dot_ja_count
-            + bottom_right.dot_ja_count;
+        let dot_ja_count = middle_middle// * step_amount * step_amount
+            + up_middle
+            + middle_left
+            + middle_right
+            + bottom_middle
+            + up_left
+            + up_right
+            + bottom_left
+            + bottom_right;
 
         println!(
             "L Step {} size {} passt {} rest {} ja {}",
             step, garden_size, step_amount, step_rest, dot_ja_count
         );
 
-        return Stats {
-            step,
-            dot_ja_count,
-            dot_na_count: 0,
-            raute_ja_count: 0,
-            raute_na_count: 0,
-        };
+        return dot_ja_count;
     }
     if step < (garden_size + garden_size) {
-        let step_rest = next_step % garden_size;
-        let step_small = next_step % garden_size -(garden_size / 2);
+        let step_rest = next_step % garden_size-1;
+        let step_small = next_step % (garden_size-1) - (garden_size / 2);
         let gerade = step % 2;
         let middle_middle = from_middle_middle[from_middle_middle.len() - 2 + gerade];
 
-        let middle_left = from_middle_left[step_rest+31];
-        let middle_right = from_middle_right[step_rest+31];
-        let bottom_middle = from_bottom_middle[step_rest+31];
-        let up_middle = from_up_middle[step_rest+31];
+        let middle_left = from_middle_left[step_rest + 32];
+        let middle_right = from_middle_right[step_rest + 32];
+        let bottom_middle = from_bottom_middle[step_rest + 32];
+        let up_middle = from_up_middle[step_rest + 32];
 
-        let middle_left_small = from_middle_left[step_small+31];
-        let middle_right_small = from_middle_right[step_small+31];
-        let bottom_middle_small = from_bottom_middle[step_small+31];
-        let up_middle_small = from_up_middle[step_small+31];
+        let middle_left_small = from_middle_left[step_small + 32];
+        let middle_right_small = from_middle_right[step_small + 32];
+        let bottom_middle_small = from_bottom_middle[step_small + 32];
+        let up_middle_small = from_up_middle[step_small + 32];
 
-        let up_left = from_up_left[step_rest+32];
-        let up_right = from_up_right[step_rest+32];
-        let bottom_left = from_bottom_left[step_rest+32];
-        let bottom_right = from_bottom_right[step_rest+32];
+        let up_left = from_up_left[step_rest + 31];
+        let up_right = from_up_right[step_rest + 31];
+        let bottom_left = from_bottom_left[step_rest + 31];
+        let bottom_right = from_bottom_right[step_rest + 31];
 
-        let dot_ja_count = 
-        middle_middle.dot_ja_count// * step_amount * step_amount
-          + up_middle.dot_ja_count
-          + middle_left.dot_ja_count
-          + middle_right.dot_ja_count
-          + bottom_middle.dot_ja_count
-          + middle_left_small.dot_ja_count
-          + middle_right_small.dot_ja_count
-          + bottom_middle_small.dot_ja_count
-          + up_middle_small.dot_ja_count
-          + up_left.dot_ja_count
-          + up_right.dot_ja_count
-          + bottom_left.dot_ja_count
-          + bottom_right.dot_ja_count;
+        let dot_ja_count = middle_middle// * step_amount * step_amount
+          + up_middle
+          + middle_left
+          + middle_right
+          + bottom_middle
+          + middle_left_small
+          + middle_right_small
+          + bottom_middle_small
+          + up_middle_small
+          + up_left
+          + up_right
+          + bottom_left
+          + bottom_right;
 
         println!(
             "K Step {} size {} passt {} rest {} ja {} small {}",
             step, garden_size, step_amount, step_rest, dot_ja_count, step_small
         );
 
-        return Stats {
-            step,
-            dot_ja_count,
-            dot_na_count: 0,
-            raute_ja_count: 0,
-            raute_na_count: 0,
-        };
+        return dot_ja_count;
     }
 
     // let grade = next_step % 2;
@@ -299,36 +276,30 @@ fn calc_stats_of_step(
         let bottom_left_half = from_bottom_left[step_rest_half];
         let bottom_right_half = from_bottom_right[step_rest_half];
 
-        let dot_ja_count = (middle_middle.dot_ja_count * step_amount * step_amount)
-            + up_middle.dot_ja_count
-            + middle_left.dot_ja_count
-            + middle_right.dot_ja_count
-            + bottom_middle.dot_ja_count
-            + up_middle_half.dot_ja_count
-            + middle_left_half.dot_ja_count
-            + middle_right_half.dot_ja_count
-            + bottom_middle_half.dot_ja_count
-            + up_left.dot_ja_count * step_amount
-            + up_right.dot_ja_count * step_amount
-            + bottom_left.dot_ja_count * step_amount
-            + bottom_right.dot_ja_count * step_amount
-            + up_left_half.dot_ja_count * step_amount
-            + up_right_half.dot_ja_count * step_amount
-            + bottom_left_half.dot_ja_count * step_amount
-            + bottom_right_half.dot_ja_count * step_amount;
+        let dot_ja_count = (middle_middle * step_amount * step_amount)
+            + up_middle
+            + middle_left
+            + middle_right
+            + bottom_middle
+            + up_middle_half
+            + middle_left_half
+            + middle_right_half
+            + bottom_middle_half
+            + up_left * step_amount
+            + up_right * step_amount
+            + bottom_left * step_amount
+            + bottom_right * step_amount
+            + up_left_half * step_amount
+            + up_right_half * step_amount
+            + bottom_left_half * step_amount
+            + bottom_right_half * step_amount;
 
         println!(
             "S Step {} size {} passt {} rest {} ja {}",
             step, garden_size, step_amount, step_rest, dot_ja_count
         );
 
-        Stats {
-            step,
-            dot_ja_count,
-            dot_na_count: 0,
-            raute_ja_count: 0,
-            raute_na_count: 0,
-        }
+        return dot_ja_count;
     } else {
         let middle_middle = from_middle_middle[from_middle_middle.len() - 1];
         let up_left = from_up_left[step_rest];
@@ -340,32 +311,26 @@ fn calc_stats_of_step(
         let bottom_middle = from_bottom_middle[step_rest];
         let bottom_right = from_bottom_right[step_rest];
 
-        let dot_ja_count = (middle_middle.dot_ja_count * step_amount * step_amount)
-            + up_middle.dot_ja_count
-            + middle_left.dot_ja_count
-            + middle_right.dot_ja_count
-            + bottom_middle.dot_ja_count
-            + up_left.dot_ja_count * step_amount
-            + up_right.dot_ja_count * step_amount
-            + bottom_left.dot_ja_count * step_amount
-            + bottom_right.dot_ja_count * step_amount;
+        let dot_ja_count = (middle_middle * step_amount * step_amount)
+            + up_middle
+            + middle_left
+            + middle_right
+            + bottom_middle
+            + up_left * step_amount
+            + up_right * step_amount
+            + bottom_left * step_amount
+            + bottom_right * step_amount;
 
         println!(
             "B Step {} size {} passt {} rest {} ja {}",
             step, garden_size, step_amount, step_rest, dot_ja_count
         );
 
-        Stats {
-            step,
-            dot_ja_count,
-            dot_na_count: 0,
-            raute_ja_count: 0,
-            raute_na_count: 0,
-        }
+        return dot_ja_count;
     }
 }
 
-fn get_stats(start: Vec<Vec<Pos>>, start_i: (usize, usize)) -> Vec<Stats> {
+fn get_stats(start: Vec<Vec<Pos>>, start_i: (usize, usize)) -> Vec<usize> {
     let start_garden: Vec<Vec<Pos>> = start;
 
     let mut garden = start_garden.clone();
@@ -436,7 +401,7 @@ struct Stats {
     raute_na_count: usize,
 }
 
-fn calc_steps(garden: &Vec<Vec<Pos>>, step: usize) -> Stats {
+fn calc_steps(garden: &Vec<Vec<Pos>>, step: usize) -> usize {
     let mut dot_ja_count = 0;
     let mut dot_na_count = 0;
     let mut raute_ja_count = 0;
@@ -458,26 +423,20 @@ fn calc_steps(garden: &Vec<Vec<Pos>>, step: usize) -> Stats {
             }
         }
     }
-    Stats {
-        step,
-        dot_ja_count,
-        dot_na_count,
-        raute_ja_count,
-        raute_na_count,
-    }
+    dot_ja_count
 }
 
 fn test(
     garden: &Vec<Vec<Pos>>,
-    from_up_left: &Vec<Stats>,
-    from_up_middle: &Vec<Stats>,
-    from_up_right: &Vec<Stats>,
-    from_middle_left: &Vec<Stats>,
-    from_middle_middle: &Vec<Stats>,
-    from_middle_right: &Vec<Stats>,
-    from_bottom_left: &Vec<Stats>,
-    from_bottom_middle: &Vec<Stats>,
-    from_bottom_right: &Vec<Stats>,
+    from_up_left: &Vec<usize>,
+    from_up_middle: &Vec<usize>,
+    from_up_right: &Vec<usize>,
+    from_middle_left: &Vec<usize>,
+    from_middle_middle: &Vec<usize>,
+    from_middle_right: &Vec<usize>,
+    from_bottom_left: &Vec<usize>,
+    from_bottom_middle: &Vec<usize>,
+    from_bottom_right: &Vec<usize>,
 ) {
     let number_list: Vec<(usize, usize)> = vec![
         (38, 1343),
@@ -506,6 +465,6 @@ fn test(
             "For Number {} erg {:?} is equal to {}",
             number.0, erg, number.1
         );
-        assert_eq!(erg.dot_ja_count, number.1)
+        assert_eq!(erg, number.1)
     }
 }
