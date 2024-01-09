@@ -2,31 +2,6 @@ use std::fs;
 
 use std::time::Instant;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct BrickI {
-    id: char,
-    start: PointI,
-    end: PointI,
-}
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct PointI {
-    x: i32,
-    y: i32,
-    z: i32,
-}
-
-fn to_point(text: &str) -> Option<PointI> {
-    let mut values = text.split(',');
-
-    Some(PointI {
-        x: values.next()?.parse().ok()?,
-        y: values.next()?.parse().ok()?,
-        z: values.next()?.parse().ok()?,
-    })
-
-    // None
-}
-
 fn main() {
     let start = Instant::now();
     let input =
@@ -42,234 +17,220 @@ fn main() {
 
     println!("Files Lines {}", input_lines.clone().count());
 
-    let mut bricks: Vec<BrickI> = vec![];
-    let mut start_char: u8 = b'A';
 
-    for line in input_lines {
-        let (point_a, point_b) = line.split_once('~').unwrap();
-        bricks.push(BrickI {
-            id: start_char.into(),
-            start: to_point(point_a).unwrap(),
-            end: to_point(point_b).unwrap(),
-        });
-
-        // if start_char > b'Z' {
-        //     start_char = b'A';
-        // } else {
-        //     start_char = start_char + 1;
-        // }
-    }
-
-    print_bricks(&bricks);
-    println!();
-    bricks.sort_by(|a, b| a.start.z.cmp(&b.start.z));
-    // Sort the vector based on the z field of the Point struct
-    // bricks.sort();
-
-    // println!("{:?}", bricks);
-    print_bricks(&bricks);
-    println!();
-
-    let mut has_diff = true;
-    let mut nombs = vec![];
-
-    while has_diff && nombs.len() < 20 {
-        bricks.sort_by(|a, b| a.start.z.cmp(&b.start.z));
-        (bricks, has_diff) = drop_bricks(bricks);
-        let save_kills = save_disintegration(&bricks);
-        nombs.push(save_kills);
-        print_bricks(&bricks);
-        println!();
-    }
-
-    // bricks.reverse();
-    // bricks = drop_bricks(bricks);
-    // bricks.reverse();
-    // bricks = drop_bricks(bricks);
-    // println!("{:?}", bricks);
-    // println!();
-
-    print_bricks(&bricks);
-    println!();
-
-    let save_kills = save_disintegration(&bricks);
-
-    println!(
-        "Solution: {} {:?} Took {:?}",
-        save_kills,
-        nombs,
-        start.elapsed()
-    );
-
-    // let mut space = parse_input(&input);
-    // space.fall_bricks_down();
-
-    // for brk in &space.bricks {
-    //     if !bricks.contains(&BrickI {
-    //         id: 'A',
-    //         start: PointI {
-    //             x: brk.start.x as i32,
-    //             y: brk.start.y as i32,
-    //             z: brk.start.z as i32,
-    //         },
-    //         end: PointI {
-    //             x: brk.end.x as i32,
-    //             y: brk.end.y as i32,
-    //             z: brk.end.z as i32,
-    //         },
-    //     }) {
-    //         println!("{:?} not in list", brk);
-    //     }
-    // }
-
-    // for brk in &bricks {
-    //     if !space.bricks.contains(&Brick::new(
-    //         Point {
-    //             x: brk.start.x as isize,
-    //             y: brk.start.y as isize,
-    //             z: brk.start.z as isize,
-    //         },
-    //         Point {
-    //             x: brk.end.x as isize,
-    //             y: brk.end.y as isize,
-    //             z: brk.end.z as isize,
-    //         },
-    //     )) {
-    //         println!("{:?} not in better list", brk);
-    //     }
-    // }
-
-    // println!("Solution: {} Took {:?}", part1(input), start.elapsed());
+    println!("Solution: {} Took {:?}", part1(input.clone()), start.elapsed());
+    println!("Solution: {} Took {:?}", part2(input), start.elapsed());
 }
 
-fn save_disintegration(bricks: &Vec<BrickI>) -> i32 {
-    let mut count = 0;
-    for brick in bricks {
-        println!(
-            "{:?} sits on {:?} holds {:?} {} would fall",
-            brick,
-            get_relative_bricks(PointI { x: 0, y: 0, z: -1 }, brick, bricks),
-            get_relative_bricks(PointI { x: 0, y: 0, z: 1 }, brick, bricks),
-            how_many_fall(brick, bricks)
-        );
-        if how_many_fall(brick, bricks) == 0 {
-            count += 1;
-        }
-    }
-    count
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Point {
+  x: isize,
+  y: isize,
+  z: isize,
 }
 
-fn how_many_fall(brick: &BrickI, bricks: &Vec<BrickI>) -> i32 {
-    let mut count = 0;
-    let above_bricks: Vec<&BrickI> =
-        get_relative_bricks(PointI { x: 0, y: 0, z: 1 }, brick, bricks);
-    for up_brick in above_bricks {
-        let standing_on_bricks =
-            get_relative_bricks(PointI { x: 0, y: 0, z: -1 }, up_brick, bricks);
-        if standing_on_bricks.len() == 1 {
-            count = count + 1;
-        }
-    }
-
-    count
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Brick {
+  start: Point,
+  end: Point,
 }
 
-fn get_relative_bricks<'a>(
-    offset: PointI,
-    brick: &'a BrickI,
-    bricks: &'a Vec<BrickI>,
-) -> Vec<&'a BrickI> {
-    let mut above_bricks: Vec<&BrickI> = Vec::new();
-
-    for pos in get_brick_tiles(brick) {
-        if let Some(brick_in) = get_brick_at(
-            PointI {
-                x: pos.x + offset.x,
-                y: pos.y + offset.y,
-                z: pos.z + offset.z,
-            },
-            bricks,
-        ) {
-            if brick_in != brick {
-                above_bricks.push(brick_in);
-            }
-        }
-    }
-
-    above_bricks.sort();
-    above_bricks.dedup();
-
-    above_bricks
+#[derive(Debug, Clone)]
+struct Space {
+  bricks: Vec<Brick>,
 }
 
-fn get_brick_at(point: PointI, bricks: &Vec<BrickI>) -> Option<&BrickI> {
-    for brick in bricks {
-        if {
-            point.x >= brick.start.x
-                && point.x <= brick.end.x
-                && point.y >= brick.start.y
-                && point.y <= brick.end.y
-                && point.z >= brick.start.z
-                && point.z <= brick.end.z
-        } {
-            return Some(brick);
-        }
-    }
-    None
+impl Point {
+  fn from_str(s: &str) -> Point {
+      let xyz: Vec<_> = s.split(",").collect();
+      if xyz.len() != 3 {
+          panic!("Invalid point: {}", s)
+      }
+      Point {
+          x: xyz[0].parse().expect("Invalid x"),
+          y: xyz[1].parse().expect("Invalid y"),
+          z: xyz[2].parse().expect("Invalid z"),
+      }
+  }
 }
 
-fn get_brick_tiles(brick: &BrickI) -> Vec<PointI> {
-    let mut tiles = Vec::new();
+impl Brick {
+  fn from_str(s: &str) -> Brick {
+      let (from, to) = s.split_once("~").expect("Invalid brick");
+      let from = Point::from_str(from);
+      let to = Point::from_str(to);
+      Brick::new(from, to)
+  }
+  fn new(start: Point, end: Point) -> Brick {
+      assert!(start.z <= end.z);
+      assert!(start.x <= end.x);
+      assert!(start.y <= end.y);
+      Brick { start, end }
+  }
 
-    for x in brick.start.x..=brick.end.x {
-        for y in brick.start.y..=brick.end.y {
-            for z in brick.start.z..=brick.end.z {
-                tiles.push(PointI { x, y, z });
-            }
-        }
-    }
+  fn fall_down(&mut self) {
+      self.start.z -= 1;
+      self.end.z -= 1;
+  }
 
-    tiles
+  fn contains(&self, point: &Point) -> bool {
+      point.x >= self.start.x
+          && point.x <= self.end.x
+          && point.y >= self.start.y
+          && point.y <= self.end.y
+          && point.z >= self.start.z
+          && point.z <= self.end.z
+  }
+
+  fn _cube_iter(&self) -> BrickIterator {
+      let step;
+      if self.start.x != self.end.x {
+          step = Point { x: 1, y: 0, z: 0 };
+      } else if self.start.y != self.end.y {
+          step = Point { x: 0, y: 1, z: 0 };
+      } else {
+          step = Point { x: 0, y: 0, z: 1 };
+      }
+      BrickIterator {
+          brick: *self,
+          current: self.start,
+          step,
+      }
+  }
+
+  fn xy_cube_iter(&self) -> BrickIterator {
+      let step;
+      if self.start.x == self.end.x && self.start.y == self.end.y {
+          step = Point { x: 1, y: 1, z: 1 };
+      } else if self.start.x != self.end.x {
+          step = Point { x: 1, y: 0, z: 0 };
+      } else {
+          step = Point { x: 0, y: 1, z: 0 };
+      }
+      BrickIterator {
+          brick: *self,
+          current: self.start,
+          step,
+      }
+  }
 }
 
-fn drop_bricks(mut bricks: Vec<BrickI>) -> (Vec<BrickI>, bool) {
-    let mut has_diff = false;
-    for brick_index in 0..bricks.len() {
-        let brick_copy = bricks.clone();
-        let brick = brick_copy[brick_index];
-        let low_z = brick.start.z.min(brick.end.z);
-        let drop = drop_height(&brick, &brick_copy); // Pass mutable reference
-        let diff = low_z - drop;
-        if diff != 0 {
-            has_diff = true;
-        }
-        bricks[brick_index].start.z = bricks[brick_index].start.z - diff;
-        bricks[brick_index].end.z = bricks[brick_index].end.z - diff;
-    }
-
-    (bricks, has_diff)
+struct BrickIterator {
+  brick: Brick,
+  current: Point,
+  step: Point,
 }
 
-fn drop_height(brick: &BrickI, bricks: &Vec<BrickI>) -> i32 {
-    let mut drop = 0;
-    // println!("\nP{:?}", brick);
-    for brik in bricks {
-        if intersect(brick, brik) && brik.start.z <= brick.start.z && brick != brik {
-            // println!("B{:?}", brik);
-            drop = brik.end.z + 1;
-        }
-    }
+impl Iterator for BrickIterator {
+  type Item = Point;
 
-    drop
+  fn next(&mut self) -> Option<Point> {
+      if !self.brick.contains(&self.current) {
+          return None;
+      }
+      let ret = self.current;
+      self.current.x += self.step.x;
+      self.current.y += self.step.y;
+      self.current.z += self.step.z;
+      Some(ret)
+  }
 }
 
-fn intersect(brick_a: &BrickI, brick_b: &BrickI) -> bool {
-    // Check for x-axis overlap
-    let x_overlap = brick_a.start.x <= brick_b.end.x && brick_a.end.x >= brick_b.start.x;
+impl Space {
+  fn new() -> Space {
+      Space { bricks: Vec::new() }
+  }
 
-    // Check for y-axis overlap
-    let y_overlap = brick_a.start.y <= brick_b.end.y && brick_a.end.y >= brick_b.start.y;
+  fn add_brick(&mut self, brick: Brick) {
+      self.bricks.push(brick);
+  }
 
-    // The bricks intersect if there is overlap in both dimensions
-    x_overlap && y_overlap
+  fn is_empty_xy(&self, point: &Point) -> bool {
+      self.bricks
+          .iter()
+          .all(|brick| point.z > 0 && !brick.contains(point))
+  }
+
+  fn can_brick_fall(&self, brick: &Brick) -> bool {
+      let mut brick = brick.clone();
+      brick.fall_down();
+      for point in brick.xy_cube_iter() {
+          if !self.is_empty_xy(&point) {
+              return false;
+          }
+      }
+      true
+  }
+
+  fn next_brick_to_fall(&self) -> Option<usize> {
+      for (index, brick) in self.bricks.iter().enumerate() {
+          if self.can_brick_fall(brick) {
+              return Some(index);
+          }
+      }
+      None
+  }
+
+  fn fall_bricks_down(&mut self) -> usize {
+      let mut affected = vec![];
+      while let Some(idx) = self.next_brick_to_fall() {
+          if !affected.contains(&idx) {
+              affected.push(idx);
+          }
+          while self.can_brick_fall(&self.bricks[idx]) {
+              self.bricks[idx].fall_down();
+          }
+      }
+      affected.len()
+  }
+
+  fn _show(&self) {
+      for brick in &self.bricks {
+          println!("{:?}", brick);
+          for point in brick._cube_iter() {
+              println!("-- {:?}", point);
+          }
+          println!();
+      }
+  }
+}
+
+fn parse_input(str: &str) -> Space {
+  let mut space = Space::new();
+  str.lines().for_each(|line| {
+      space.add_brick(Brick::from_str(line));
+  });
+  space
+}
+
+// totally unoptimized
+pub fn part1(input: String) -> u64 {
+  let mut space = parse_input(&input);
+  space.fall_bricks_down();
+
+  let mut cnt = 0;
+  for (i, _) in space.bricks.iter().enumerate() {
+      println!("{}/{}", i, space.bricks.len());
+      let mut space2 = space.clone();
+      space2.bricks.remove(i);
+      if space2.next_brick_to_fall().is_none() {
+          cnt += 1;
+      }
+  }
+  cnt as u64
+}
+
+pub fn part2(input: String) -> u64 {
+  let mut space = parse_input(&input);
+  space.fall_bricks_down();
+
+  let mut cnt = 0;
+  for (i, _) in space.bricks.iter().enumerate() {
+      let mut space2 = space.clone();
+      space2.bricks.remove(i);
+      let fallen = space2.fall_bricks_down();
+      println!("{}/{} -> {}", i, space.bricks.len(), fallen);
+      cnt += fallen;
+  }
+  cnt as u64
 }
