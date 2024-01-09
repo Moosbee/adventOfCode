@@ -88,7 +88,7 @@ fn main() {
     // );
 
     let numbers = vec![38, 64, 86, 140, 141, 200, 1002, 4178]; //, 3396, 658, 2687, 1716, 3910, 4178, 4678, 3887, 3432,
-                                                         // ];
+                                                               // ];
 
     for number in numbers {
         let erg = calc_stats_of_step(
@@ -123,7 +123,20 @@ fn main() {
         "Solution: {} Took {:?}",
         from_middle_middle.len(),
         start.elapsed()
-    )
+    );
+    print_garden(&garden);
+    test(
+        &garden,
+        &from_up_left,
+        &from_up_middle,
+        &from_up_right,
+        &from_middle_left,
+        &from_middle_middle,
+        &from_middle_right,
+        &from_bottom_left,
+        &from_bottom_middle,
+        &from_bottom_right,
+    );
 }
 
 fn print_garden(garden: &Vec<Vec<Pos>>) {
