@@ -37,62 +37,19 @@ fn main() {
     let mut sum_2 = 0;
 
     for update in page_updates {
-        let is_in_order = is_update_in_order(&order_rules, &update);
         let middle = update.len() / 2;
-        println!(
-            "Update: {:?} Is in order: {} Middle: {} length: {}",
-            update,
-            is_in_order,
-            middle,
-            update.len()
-        );
 
         assert!(update.len() % 2 == 1);
+        let fixed = fix_updates(&order_rules, &update);
 
-        if is_in_order {
+        if fixed == update {
             sum += update[middle];
         } else {
-            let fixed = fix_updates(&order_rules, &update);
-            println!(
-                "Fixed: {:?} Is in order: {}",
-                fixed,
-                is_update_in_order(&order_rules, &fixed)
-            );
             sum_2 += fixed[middle];
         }
     }
 
     println!("Sum: {} Sum 2: {} took: {:?}", sum, sum_2, start.elapsed());
-}
-
-fn is_update_in_order(order_rules: &Vec<(i32, i32)>, page_updates: &Vec<i32>) -> bool {
-    for i in 0..page_updates.len() {
-        // println!("{} {}", page_updates[i], i);
-
-        let applied_rules = get_rules_for_number(order_rules, page_updates[i])
-            .iter()
-            .map(|f| f.0)
-            .collect::<Vec<_>>();
-
-        for j in 0..i {
-            if applied_rules.contains(&page_updates[j]) {
-                // println!("ye {} {}", page_updates[j], j);
-            } else {
-                // println!("no {} {}", page_updates[j], j);
-                return false;
-            }
-        }
-        for j in i..page_updates.len() {
-            if applied_rules.contains(&page_updates[j]) {
-                // println!("no {} {}", page_updates[j], j);
-                return false;
-            } else {
-                // println!("ye {} {}", page_updates[j], j);
-            }
-        }
-    }
-
-    true
 }
 
 fn fix_updates(order_rules: &Vec<(i32, i32)>, page_updates: &Vec<i32>) -> Vec<i32> {
@@ -106,8 +63,8 @@ fn fix_updates(order_rules: &Vec<(i32, i32)>, page_updates: &Vec<i32>) -> Vec<i3
             std::cmp::Ordering::Equal
         }
     });
-
     new_updates.reverse();
+
     new_updates
 }
 
