@@ -1,5 +1,5 @@
 use colored::Colorize;
-use std::{collections::HashSet, fs, time::Instant};
+use std::{fs, time::Instant};
 
 #[derive(Debug, Clone)]
 struct Position {
