@@ -28,7 +28,7 @@ fn main() {
         .collect::<Vec<Vec<u32>>>();
 
     let mut to_travel: VecDeque<((u32, (usize, usize)), (u32, (usize, usize)))> = VecDeque::new();
-    let mut travel_paths: HashMap<(u32, (usize, usize)), HashSet<(u32, (usize, usize))>> =
+    let mut travel_paths: HashMap<(u32, (usize, usize)), Vec<(u32, (usize, usize))>> =
         HashMap::new();
     let mut trailheads: Vec<(u32, (usize, usize))> = Vec::new();
     print_board(&height_map, &travel_paths);
@@ -69,7 +69,7 @@ fn main() {
         let current = (num, pos);
 
         let mut path = travel_paths.remove(&current).unwrap_or_default();
-        path.insert(start);
+        path.push(start);
         travel_paths.insert(current, path);
 
         let up = get_num(m as isize - 1, n as isize);
@@ -104,7 +104,14 @@ fn main() {
 
     println!();
     // println!("Trailheads: {:?}", travel_paths);
-    let res = travel_paths
+    let part_1 = travel_paths
+        .iter()
+        .filter(|pt| pt.0 .0 == 9)
+        .map(|pt| pt.1.iter().collect::<HashSet<_>>())
+        .flatten()
+        .collect::<Vec<_>>();
+
+    let part_2 = travel_paths
         .iter()
         .filter(|pt| pt.0 .0 == 9)
         .map(|pt| pt.1.iter().collect::<Vec<_>>())
@@ -112,13 +119,14 @@ fn main() {
         .collect::<Vec<_>>();
     println!();
 
-    println!("Part 1: {}", res.len());
+    println!("Part 1: {}", part_1.len());
+    println!("Part 2: {}", part_2.len());
     println!("Time: {:?}", start.elapsed());
 }
 
 fn print_board(
     height_map: &Vec<Vec<u32>>,
-    travel_paths: &HashMap<(u32, (usize, usize)), HashSet<(u32, (usize, usize))>>,
+    travel_paths: &HashMap<(u32, (usize, usize)), Vec<(u32, (usize, usize))>>,
 ) {
     for m in 0..height_map.len() {
         for n in 0..height_map[m].len() {
@@ -145,35 +153,4 @@ fn print_board(
         }
         println!("");
     }
-}
-
-/// Convert a HashMap of (row, column) to value into a 2D vector
-///
-/// The size of the output vector is determined by the maximum row and column
-/// present in the input HashMap.
-///
-/// # Example
-///
-///
-fn hashmap_to_vec<T: Default + Clone>(map: HashMap<(usize, usize), T>) -> Vec<Vec<T>> {
-    // Determine the size of the grid
-    let (mut max_row, mut max_col) = (0, 0);
-    for &(row, col) in map.keys() {
-        if row > max_row {
-            max_row = row;
-        }
-        if col > max_col {
-            max_col = col;
-        }
-    }
-
-    // Initialize a 2D vector with default values
-    let mut grid = vec![vec![T::default(); max_col + 1]; max_row + 1];
-
-    // Populate the grid with values from the HashMap
-    for ((row, col), value) in map {
-        grid[row][col] = value;
-    }
-
-    grid
 }
