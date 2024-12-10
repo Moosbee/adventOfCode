@@ -1,11 +1,11 @@
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     fs,
+    hash::{DefaultHasher, Hash, Hasher},
     time::Instant,
 };
 
-use colored::Colorize;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use colored::{Colorize, CustomColor};
 
 fn main() {
     let input =
@@ -134,19 +134,15 @@ fn print_board(
             let path = travel_paths.get(&(num, (m as usize, n as usize)));
 
             if let Some(path) = path {
-                match num {
-                    0 => print!("{}", height_map[m][n].to_string().green()),
-                    1 => print!("{}", height_map[m][n].to_string().blue()),
-                    2 => print!("{}", height_map[m][n].to_string().yellow()),
-                    3 => print!("{}", height_map[m][n].to_string().magenta()),
-                    4 => print!("{}", height_map[m][n].to_string().purple()),
-                    5 => print!("{}", height_map[m][n].to_string().cyan()),
-                    6 => print!("{}", height_map[m][n].to_string().bright_green()),
-                    7 => print!("{}", height_map[m][n].to_string().bright_magenta()),
-                    8 => print!("{}", height_map[m][n].to_string().bright_blue()),
-                    9 => print!("{}", height_map[m][n].to_string().red()),
-                    _ => print!("{}", height_map[m][n].to_string().white()),
-                }
+                let mut hasher = DefaultHasher::new();
+                path.hash(&mut hasher);
+                let num_color = hasher.finish() % (256 * 256 * 256);
+                let color: CustomColor = CustomColor {
+                    r: (num_color % 256) as u8,
+                    g: ((num_color / 256) % 256) as u8,
+                    b: ((num_color / (256 * 256)) % 256) as u8,
+                };
+                print!("{}", height_map[m][n].to_string().custom_color(color));
             } else {
                 print!("{}", height_map[m][n]);
             }
