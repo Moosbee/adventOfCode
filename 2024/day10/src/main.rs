@@ -5,6 +5,7 @@ use std::{
 };
 
 use colored::Colorize;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 fn main() {
     let input =
@@ -101,16 +102,16 @@ fn main() {
 
     print_board(&height_map, &travel_paths);
 
+    let travel_paths: Vec<Vec<Vec<(u32, (usize, usize))>>> = hashmap_to_vec(travel_paths);
+
     println!();
     println!("Paths: {:?}", travel_paths);
     println!();
 
-    let mut cached: HashMap<(u32, (usize, usize)), Vec<(u32, (usize, usize))>> = HashMap::new();
-
     let part_1 = trailheads
-        .iter()
+        .par_iter()
         .map(|f| {
-            let paths = travel_next(&travel_paths, f, &mut cached);
+            let paths = travel_next(&travel_paths, f);
             let single = paths.iter().collect::<HashSet<_>>();
             single.len()
         })
@@ -121,33 +122,26 @@ fn main() {
 }
 
 fn travel_next(
-    travel_paths: &HashMap<(usize, usize), Vec<(u32, (usize, usize))>>,
+    travel_paths: &Vec<Vec<Vec<(u32, (usize, usize))>>>,
     current: &(u32, (usize, usize)),
-    cached: &mut HashMap<(u32, (usize, usize)), Vec<(u32, (usize, usize))>>,
 ) -> Vec<(u32, (usize, usize))> {
-    if cached.contains_key(current) {
-        return cached.get(current).unwrap().clone();
-    }
-
     let erg: Vec<(u32, (usize, usize))> = {
         if current.0 == 9 {
             return vec![*current];
         }
 
-        let next = travel_paths.get(&current.1);
+        let next = &travel_paths[current.1 .0][current.1 .1];
 
-        if next.is_none() {
-            return vec![];
-        }
+        // if next.is_none() {
+        //     return vec![];
+        // }
 
-        next.unwrap()
-            .iter()
-            .map(|next| travel_next(travel_paths, next, cached))
+        next.par_iter()
+            .map(|next| travel_next(travel_paths, next))
             .flatten()
             .collect()
     };
 
-    cached.insert(*current, erg.clone());
     return erg;
 }
 
@@ -180,4 +174,35 @@ fn print_board(
         }
         println!("");
     }
+}
+
+/// Convert a HashMap of (row, column) to value into a 2D vector
+///
+/// The size of the output vector is determined by the maximum row and column
+/// present in the input HashMap.
+///
+/// # Example
+///
+///
+fn hashmap_to_vec<T: Default + Clone>(map: HashMap<(usize, usize), T>) -> Vec<Vec<T>> {
+    // Determine the size of the grid
+    let (mut max_row, mut max_col) = (0, 0);
+    for &(row, col) in map.keys() {
+        if row > max_row {
+            max_row = row;
+        }
+        if col > max_col {
+            max_col = col;
+        }
+    }
+
+    // Initialize a 2D vector with default values
+    let mut grid = vec![vec![T::default(); max_col + 1]; max_row + 1];
+
+    // Populate the grid with values from the HashMap
+    for ((row, col), value) in map {
+        grid[row][col] = value;
+    }
+
+    grid
 }
