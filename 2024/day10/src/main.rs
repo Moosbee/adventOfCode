@@ -10,7 +10,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 fn main() {
     let input =
         fs::read_to_string("./test_input.txt").expect("Should have been able to read the file");
-    // let input = fs::read_to_string("./input.txt").expect("Should have been able to read the file");
+    let input = fs::read_to_string("./input.txt").expect("Should have been able to read the file");
 
     let input_lines = input.split('\n');
 
@@ -27,8 +27,9 @@ fn main() {
         })
         .collect::<Vec<Vec<u32>>>();
 
-    let mut to_travel: VecDeque<(u32, (usize, usize))> = VecDeque::new();
-    let mut travel_paths: HashMap<(usize, usize), Vec<(u32, (usize, usize))>> = HashMap::new();
+    let mut to_travel: VecDeque<((u32, (usize, usize)), (u32, (usize, usize)))> = VecDeque::new();
+    let mut travel_paths: HashMap<(u32, (usize, usize)), HashSet<(u32, (usize, usize))>> =
+        HashMap::new();
     let mut trailheads: Vec<(u32, (usize, usize))> = Vec::new();
     print_board(&height_map, &travel_paths);
     println!();
@@ -37,7 +38,12 @@ fn main() {
         for n in 0..height_map[m].len() {
             let num = height_map[m][n];
             if num == 0 {
-                to_travel.push_back((num, (m as usize, n as usize)));
+                to_travel.push_back((
+                    (num, (m as usize, n as usize)),
+                    (num, (m as usize, n as usize)),
+                ));
+            }
+            if num == 9 {
                 trailheads.push((num, (m as usize, n as usize)));
             }
         }
@@ -56,9 +62,15 @@ fn main() {
         }
     };
 
-    while let Some((num, pos)) = to_travel.pop_front() {
+    while let Some(((num, pos), start)) = to_travel.pop_front() {
         let m = pos.0;
         let n = pos.1;
+
+        let current = (num, pos);
+
+        let mut path = travel_paths.remove(&current).unwrap_or_default();
+        path.insert(start);
+        travel_paths.insert(current, path);
 
         let up = get_num(m as isize - 1, n as isize);
 
@@ -68,91 +80,50 @@ fn main() {
 
         if let Some((dr_num, dr_pos)) = up {
             if dr_num == num + 1 {
-                to_travel.push_back((dr_num, dr_pos));
-                let mut current_path = travel_paths.remove(&pos).unwrap_or(Vec::new());
-                current_path.push((dr_num, dr_pos));
-                travel_paths.insert(pos, current_path);
+                to_travel.push_back(((dr_num, dr_pos), start));
             }
         }
         if let Some((dr_num, dr_pos)) = down {
             if dr_num == num + 1 {
-                to_travel.push_back((dr_num, dr_pos));
-                let mut current_path = travel_paths.remove(&pos).unwrap_or(Vec::new());
-                current_path.push((dr_num, dr_pos));
-                travel_paths.insert(pos, current_path);
+                to_travel.push_back(((dr_num, dr_pos), start));
             }
         }
         if let Some((dr_num, dr_pos)) = left {
             if dr_num == num + 1 {
-                to_travel.push_back((dr_num, dr_pos));
-                let mut current_path = travel_paths.remove(&pos).unwrap_or(Vec::new());
-                current_path.push((dr_num, dr_pos));
-                travel_paths.insert(pos, current_path);
+                to_travel.push_back(((dr_num, dr_pos), start));
             }
         }
         if let Some((dr_num, dr_pos)) = right {
             if dr_num == num + 1 {
-                to_travel.push_back((dr_num, dr_pos));
-                let mut current_path = travel_paths.remove(&pos).unwrap_or(Vec::new());
-                current_path.push((dr_num, dr_pos));
-                travel_paths.insert(pos, current_path);
+                to_travel.push_back(((dr_num, dr_pos), start));
             }
         }
     }
 
     print_board(&height_map, &travel_paths);
 
-    let travel_paths: Vec<Vec<Vec<(u32, (usize, usize))>>> = hashmap_to_vec(travel_paths);
-
     println!();
-    println!("Paths: {:?}", travel_paths);
+    // println!("Trailheads: {:?}", travel_paths);
+    let res = travel_paths
+        .iter()
+        .filter(|pt| pt.0 .0 == 9)
+        .map(|pt| pt.1.iter().collect::<Vec<_>>())
+        .flatten()
+        .collect::<Vec<_>>();
     println!();
 
-    let part_1 = trailheads
-        .par_iter()
-        .map(|f| {
-            let paths = travel_next(&travel_paths, f);
-            let single = paths.iter().collect::<HashSet<_>>();
-            single.len()
-        })
-        .sum::<usize>();
-
-    println!("Part 1: {}", part_1);
+    println!("Part 1: {}", res.len());
     println!("Time: {:?}", start.elapsed());
-}
-
-fn travel_next(
-    travel_paths: &Vec<Vec<Vec<(u32, (usize, usize))>>>,
-    current: &(u32, (usize, usize)),
-) -> Vec<(u32, (usize, usize))> {
-    let erg: Vec<(u32, (usize, usize))> = {
-        if current.0 == 9 {
-            return vec![*current];
-        }
-
-        let next = &travel_paths[current.1 .0][current.1 .1];
-
-        // if next.is_none() {
-        //     return vec![];
-        // }
-
-        next.par_iter()
-            .map(|next| travel_next(travel_paths, next))
-            .flatten()
-            .collect()
-    };
-
-    return erg;
 }
 
 fn print_board(
     height_map: &Vec<Vec<u32>>,
-    travel_paths: &HashMap<(usize, usize), Vec<(u32, (usize, usize))>>,
+    travel_paths: &HashMap<(u32, (usize, usize)), HashSet<(u32, (usize, usize))>>,
 ) {
     for m in 0..height_map.len() {
         for n in 0..height_map[m].len() {
             let num = height_map[m][n];
-            let path = travel_paths.get(&(m as usize, n as usize));
+            let path = travel_paths.get(&(num, (m as usize, n as usize)));
 
             if let Some(path) = path {
                 match num {
