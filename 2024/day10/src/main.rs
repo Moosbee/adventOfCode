@@ -105,10 +105,12 @@ fn main() {
     println!("Paths: {:?}", travel_paths);
     println!();
 
+    let mut cached: HashMap<(u32, (usize, usize)), Vec<(u32, (usize, usize))>> = HashMap::new();
+
     let part_1 = trailheads
         .iter()
         .map(|f| {
-            let paths = travel_next(&travel_paths, f);
+            let paths = travel_next(&travel_paths, f, &mut cached);
             let single = paths.iter().collect::<HashSet<_>>();
             single.len()
         })
@@ -121,22 +123,32 @@ fn main() {
 fn travel_next(
     travel_paths: &HashMap<(usize, usize), Vec<(u32, (usize, usize))>>,
     current: &(u32, (usize, usize)),
+    cached: &mut HashMap<(u32, (usize, usize)), Vec<(u32, (usize, usize))>>,
 ) -> Vec<(u32, (usize, usize))> {
-    if current.0 == 9 {
-        return vec![*current];
+    if cached.contains_key(current) {
+        return cached.get(current).unwrap().clone();
     }
 
-    let next = travel_paths.get(&current.1);
+    let erg: Vec<(u32, (usize, usize))> = {
+        if current.0 == 9 {
+            return vec![*current];
+        }
 
-    if next.is_none() {
-        return vec![];
-    }
+        let next = travel_paths.get(&current.1);
 
-    next.unwrap()
-        .iter()
-        .map(|next| travel_next(travel_paths, next))
-        .flatten()
-        .collect()
+        if next.is_none() {
+            return vec![];
+        }
+
+        next.unwrap()
+            .iter()
+            .map(|next| travel_next(travel_paths, next, cached))
+            .flatten()
+            .collect()
+    };
+
+    cached.insert(*current, erg.clone());
+    return erg;
 }
 
 fn print_board(
