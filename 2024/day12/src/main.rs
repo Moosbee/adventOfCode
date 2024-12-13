@@ -1,3 +1,4 @@
+use core::panic;
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     fs,
@@ -11,8 +12,8 @@ const HASH_NUM: &str = "kek";
 
 fn main() {
     let input =
-        fs::read_to_string("./test_input_1.txt").expect("Should have been able to read the file");
-    // let input = fs::read_to_string("./input.txt").expect("Should have been able to read the file");
+        fs::read_to_string("./test_input.txt").expect("Should have been able to read the file");
+    let input = fs::read_to_string("./input.txt").expect("Should have been able to read the file");
 
     let input_lines = input.split('\n');
 
@@ -138,39 +139,40 @@ fn print_board(letters: Vec<Vec<(char, usize)>>) {
 fn calc_price(region: (usize, char, Vec<(usize, usize)>)) -> (usize, usize) {
     let area = region.2.len();
 
-    let circum_1: usize = region
-        .2
-        .iter()
-        .map(|r| {
-            let row = r.0 as isize;
-            let col = r.1 as isize;
-            let up = region
-                .2
-                .iter()
-                .find(|f| f.0 as isize == row - 1 && f.1 as isize == col);
-            let down = region
-                .2
-                .iter()
-                .find(|f| f.0 as isize == row + 1 && f.1 as isize == col);
-            let left = region
-                .2
-                .iter()
-                .find(|f| f.0 as isize == row && f.1 as isize == col - 1);
-            let right = region
-                .2
-                .iter()
-                .find(|f| f.0 as isize == row && f.1 as isize == col + 1);
+    // let circum_1: usize = region
+    //     .2
+    //     .iter()
+    //     .map(|r| {
+    //         let row = r.0 as isize;
+    //         let col = r.1 as isize;
+    //         let up = region
+    //             .2
+    //             .iter()
+    //             .find(|f| f.0 as isize == row - 1 && f.1 as isize == col);
+    //         let down = region
+    //             .2
+    //             .iter()
+    //             .find(|f| f.0 as isize == row + 1 && f.1 as isize == col);
+    //         let left = region
+    //             .2
+    //             .iter()
+    //             .find(|f| f.0 as isize == row && f.1 as isize == col - 1);
+    //         let right = region
+    //             .2
+    //             .iter()
+    //             .find(|f| f.0 as isize == row && f.1 as isize == col + 1);
 
-            let sum = up.is_none() as usize
-                + down.is_none() as usize
-                + left.is_none() as usize
-                + right.is_none() as usize;
+    //         let sum = up.is_none() as usize
+    //             + down.is_none() as usize
+    //             + left.is_none() as usize
+    //             + right.is_none() as usize;
 
-            sum
-        })
-        .sum();
+    //         sum
+    //     })
+    //     .sum();
 
     let points = get_points(region.2);
+    let circum_1 = points.len();
     let sides: usize = calc_sides(points);
 
     let mut hasher = DefaultHasher::new();
@@ -192,7 +194,7 @@ fn calc_price(region: (usize, char, Vec<(usize, usize)>)) -> (usize, usize) {
         sides,
         circum_1 * area,
         sides * area,
-        region.0
+        region.0,
     );
 
     (circum_1 * area, sides * area)
@@ -255,167 +257,46 @@ fn calc_sides(mut sides: HashSet<((usize, usize), (usize, usize))>) -> usize {
         let row = current.0 as isize;
         let col = current.1 as isize;
 
-        let up = sides
+        let connected_sides = sides
             .iter()
-            .find(|f| {
-                (f.0 .0 as isize == row - 1
-                    && f.0 .1 as isize == col
-                    && f.1 .0 as isize == row
-                    && f.1 .1 as isize == col)
-                    || (f.1 .0 as isize == row - 1
-                        && f.1 .1 as isize == col
-                        && f.0 .0 as isize == row
-                        && f.0 .1 as isize == col)
+            .filter(|&((x1, y1), (x2, y2))| {
+                (row == *x1 as isize && col == *y1 as isize)
+                    || (row == *x2 as isize && col == *y2 as isize)
             })
-            .is_some();
-        let down = sides
-            .iter()
-            .find(|f| {
-                (f.0 .0 as isize == row + 1
-                    && f.0 .1 as isize == col
-                    && f.1 .0 as isize == row
-                    && f.1 .1 as isize == col)
-                    || (f.1 .0 as isize == row + 1
-                        && f.1 .1 as isize == col
-                        && f.0 .0 as isize == row
-                        && f.0 .1 as isize == col)
-            })
-            .is_some();
-        let right = sides
-            .iter()
-            .find(|f| {
-                (f.0 .0 as isize == row
-                    && f.0 .1 as isize == col + 1
-                    && f.1 .0 as isize == row
-                    && f.1 .1 as isize == col)
-                    || (f.1 .0 as isize == row
-                        && f.1 .1 as isize == col + 1
-                        && f.0 .0 as isize == row
-                        && f.0 .1 as isize == col)
-            })
-            .is_some();
-        let left = sides
-            .iter()
-            .find(|f| {
-                (f.0 .0 as isize == row
-                    && f.0 .1 as isize == col - 1
-                    && f.1 .0 as isize == row
-                    && f.1 .1 as isize == col)
-                    || (f.1 .0 as isize == row
-                        && f.1 .1 as isize == col - 1
-                        && f.0 .0 as isize == row
-                        && f.0 .1 as isize == col)
-            })
-            .is_some();
+            .collect::<Vec<_>>();
 
-        println!("jinikln {:?}, {} {} {} {}", current, up, down, left, right);
+        assert!(connected_sides.len() <= 4 && connected_sides.len() >= 2);
 
-        if (up && down) && !(left || right) {
-            let up_left = sides
-                .iter()
-                .find(|f| {
-                    f.1 .0 as isize == row - 1
-                        && f.1 .1 as isize == col
-                        && f.0 .0 as isize == row
-                        && f.0 .1 as isize == col
-                })
-                .cloned();
-            let up_right = sides
-                .iter()
-                .find(|f| {
-                    f.0 .0 as isize == row - 1
-                        && f.0 .1 as isize == col
-                        && f.1 .0 as isize == row
-                        && f.1 .1 as isize == col
-                })
-                .cloned();
-            let down_left = sides
-                .iter()
-                .find(|f| {
-                    f.1 .0 as isize == row + 1
-                        && f.1 .1 as isize == col
-                        && f.0 .0 as isize == row
-                        && f.0 .1 as isize == col
-                })
-                .cloned();
+        if connected_sides.len() == 2 {
+            let first_side = *connected_sides[0];
+            let second_side = *connected_sides[1];
 
-            let down_right = sides
-                .iter()
-                .find(|f| {
-                    f.0 .0 as isize == row + 1
-                        && f.0 .1 as isize == col
-                        && f.1 .0 as isize == row
-                        && f.1 .1 as isize == col
-                })
-                .cloned();
+            let first = get_other(&first_side, *current);
+            let second = get_other(&second_side, *current);
 
-            let down_side = down_left.unwrap_or_else(|| down_right.unwrap());
-            let down = down_left
-                .map(|f| f.1)
-                .unwrap_or_else(|| down_right.unwrap().0);
-            let up_side = up_left.unwrap_or_else(|| up_right.unwrap());
-            let up = up_left.map(|f| f.1).unwrap_or_else(|| up_right.unwrap().0);
-
-            let new_side = (up, down);
-            sides.remove(&up_side);
-            sides.remove(&down_side);
-            sides.insert(new_side);
-        } else if !(up || down) && (left && right) {
-            let left_left = sides
-                .iter()
-                .find(|f| {
-                    f.1 .0 as isize == row
-                        && f.1 .1 as isize == col - 1
-                        && f.0 .0 as isize == row
-                        && f.0 .1 as isize == col
-                })
-                .cloned();
-            let left_right = sides
-                .iter()
-                .find(|f| {
-                    f.0 .0 as isize == row
-                        && f.0 .1 as isize == col - 1
-                        && f.1 .0 as isize == row
-                        && f.1 .1 as isize == col
-                })
-                .cloned();
-            let right_left = sides
-                .iter()
-                .find(|f| {
-                    f.1 .0 as isize == row
-                        && f.1 .1 as isize == col + 1
-                        && f.0 .0 as isize == row
-                        && f.0 .1 as isize == col
-                })
-                .cloned();
-
-            let right_right = sides
-                .iter()
-                .find(|f| {
-                    f.0 .0 as isize == row
-                        && f.0 .1 as isize == col + 1
-                        && f.1 .0 as isize == row
-                        && f.1 .1 as isize == col
-                })
-                .cloned();
-
-            let right_side = right_left.unwrap_or_else(|| right_right.unwrap());
-            let right = right_left
-                .map(|f| f.1)
-                .unwrap_or_else(|| right_right.unwrap().0);
-            let left_side = left_left.unwrap_or_else(|| left_right.unwrap());
-            let left = left_left
-                .map(|f| f.1)
-                .unwrap_or_else(|| left_right.unwrap().0);
-
-            let new_side = (left, right);
-            sides.remove(&left_side);
-            sides.remove(&right_side);
-            sides.insert(new_side);
-        } else {
+            if first.0 == second.0 {
+                let new_side = ((first.0, first.1), (second.0, second.1));
+                sides.remove(&first_side);
+                sides.remove(&second_side);
+                sides.insert(new_side);
+            } else if first.1 == second.1 {
+                let new_side = ((first.0, first.1), (second.0, second.1));
+                sides.remove(&first_side);
+                sides.remove(&second_side);
+                sides.insert(new_side);
+            }
         }
     }
 
-    println!("Sides {:?}", sides);
     sides.len()
+}
+
+fn get_other(side: &((usize, usize), (usize, usize)), now: (usize, usize)) -> (usize, usize) {
+    if side.0 == now {
+        return side.1;
+    } else if side.1 == now {
+        return side.0;
+    } else {
+        panic!("Not found");
+    }
 }
